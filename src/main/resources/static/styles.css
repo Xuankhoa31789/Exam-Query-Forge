@@ -268,21 +268,37 @@ button {
     border-color: #9ca3af;
 }
 
-.login-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+.btn-login {
+    width: 100%;
     margin-top: 8px;
 }
 
-.btn-login {
-    grid-column: 1 / -1;
+.login-actions {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-top: 16px;
 }
 
 .btn-register {
-    justify-self: end;
+    justify-self: start;
     width: auto;
     padding: 10px 24px;
+}
+
+.forgot-password-link {
+    text-align: right;
+    color: #2563eb;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.forgot-password-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
 }
 
 .tab-buttons {
