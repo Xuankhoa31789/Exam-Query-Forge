@@ -1,0 +1,10 @@
+{
+  "name": "A LifeTime Project",
+  "version": "0.0.1",
+  "features": [
+    "Maven project structure",
+    "Static HTML page",
+    "JSON REST API",
+    "Login and register controller"
+  ]
+}
