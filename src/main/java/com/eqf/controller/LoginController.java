@@ -7,65 +7,71 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.eqf.model.User;
+import com.eqf.service.UserService;
+
 @RestController
 @RequestMapping("/api/login")
 public class LoginController {
-    private static final Map<String, String> users = UserRegistry.getUsers();
+    private final UserService userService;
+
+    public LoginController(UserService userService) {
+        this.userService = userService;
+    }
 
     @PostMapping
     public Map<String, Object> login(@RequestBody LoginRequest request) {
-        String username = request.username();
+        String email = request.email();
         String password = request.password();
 
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException("Username is required");
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
         }
 
         if (password == null || password.trim().isEmpty()) {
             throw new IllegalArgumentException("Password is required");
         }
 
-        if (!users.containsKey(username)) {
-            throw new IllegalArgumentException("Invalid username or password");
-        }
+        try {
+            User user = userService.login(email, password);
 
-        if (!users.get(username).equals(password)) {
-            throw new IllegalArgumentException("Invalid username or password");
+            return Map.of(
+                    "status", "success",
+                    "message", "Login successful",
+                    "email", user.getEmail(),
+                    "fullName", user.getFullName(),
+                    "token", generateToken(user.getId())
+            );
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid email or password");
         }
-
-        return Map.of(
-                "status", "success",
-                "message", "Login successful",
-                "username", username,
-                "token", generateToken(username)
-        );
     }
 
-    private String generateToken(String username) {
-        return "token_" + username + "_" + System.currentTimeMillis();
+    private String generateToken(Long userId) {
+        return "token_" + userId + "_" + System.currentTimeMillis();
     }
 
     public static class LoginRequest {
-        private String username;
+        private String email;
         private String password;
 
         public LoginRequest() {}
 
-        public LoginRequest(String username, String password) {
-            this.username = username;
+        public LoginRequest(String email, String password) {
+            this.email = email;
             this.password = password;
         }
 
-        public String username() {
-            return username;
+        public String email() {
+            return email;
         }
 
         public String password() {
             return password;
         }
 
-        public void setUsername(String username) {
-            this.username = username;
+        public void setEmail(String email) {
+            this.email = email;
         }
 
         public void setPassword(String password) {

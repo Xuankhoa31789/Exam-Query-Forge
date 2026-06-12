@@ -1,0 +1,11 @@
+target/
+.tools/
+.mvn-local/
+data/
+
+*.class
+*.log
+
+.idea/
+.vscode/
+*.iml

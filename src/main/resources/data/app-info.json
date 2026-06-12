@@ -1,0 +1,9 @@
+{
+  "name": "Exam Query Forge",
+  "version": "0.0.1",
+  "features": [
+    "Shared question pool",
+    "Collaborative voting",
+    "Matrix-based exam assembly"
+  ]
+}

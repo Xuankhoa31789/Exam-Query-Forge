@@ -18,7 +18,7 @@ public class DashboardController {
     public Map<String, Object> health() {
         return Map.of(
                 "status", "ok",
-                "service", "A LifeTime Project",
+                "service", "Exam Query Forge",
                 "timestamp", Instant.now().toString()
         );
     }

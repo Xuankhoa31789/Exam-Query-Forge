@@ -7,20 +7,26 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.eqf.model.User;
+import com.eqf.service.UserService;
+
 @RestController
 @RequestMapping("/api/register")
 public class RegisterController {
-    // Shared users map with LoginController
-    private static final Map<String, String> users = UserRegistry.getUsers();
+    private final UserService userService;
+
+    public RegisterController(UserService userService) {
+        this.userService = userService;
+    }
 
     @PostMapping
     public Map<String, Object> register(@RequestBody RegisterRequest request) {
-        String username = request.username();
+        String name = request.name();
         String email = request.email();
         String password = request.password();
 
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException("Username is required");
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Name is required");
         }
 
         if (email == null || email.trim().isEmpty()) {
@@ -35,35 +41,35 @@ public class RegisterController {
             throw new IllegalArgumentException("Password must be at least 6 characters");
         }
 
-        if (users.containsKey(username)) {
-            throw new IllegalArgumentException("Username already exists");
+        try {
+            User user = userService.register(name, email, password);
+
+            return Map.of(
+                    "status", "success",
+                    "message", "Registration successful",
+                    "email", user.getEmail(),
+                    "fullName", user.getFullName()
+            );
+        } catch (IllegalArgumentException e) {
+            throw e;
         }
-
-        users.put(username, password);
-
-        return Map.of(
-                "status", "success",
-                "message", "Registration successful",
-                "username", username,
-                "email", email
-        );
     }
 
     public static class RegisterRequest {
-        private String username;
+        private String name;
         private String email;
         private String password;
 
         public RegisterRequest() {}
 
-        public RegisterRequest(String username, String email, String password) {
-            this.username = username;
+        public RegisterRequest(String name, String email, String password) {
+            this.name = name;
             this.email = email;
             this.password = password;
         }
 
-        public String username() {
-            return username;
+        public String name() {
+            return name;
         }
 
         public String email() {
@@ -74,8 +80,8 @@ public class RegisterController {
             return password;
         }
 
-        public void setUsername(String username) {
-            this.username = username;
+        public void setName(String name) {
+            this.name = name;
         }
 
         public void setEmail(String email) {
