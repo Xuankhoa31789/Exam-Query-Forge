@@ -1,14 +1,3 @@
--- =====================================================================
---  Exam Manager — PostgreSQL schema (v1)
---  Stack: Spring Boot + JPA + PostgreSQL
---  Enums stored as VARCHAR + CHECK  ->  maps cleanly to
---  @Enumerated(EnumType.STRING) in Hibernate (easier than native PG enums).
--- =====================================================================
-
-
--- =====================================================================
---  1. People & verification
--- =====================================================================
 
 CREATE TABLE subjects (
     id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -108,7 +97,7 @@ CREATE TABLE exams (
     grade                 SMALLINT,
     total_questions       INT NOT NULL,
     status                VARCHAR(20) NOT NULL DEFAULT 'DRAFT'
-                          CHECK (status IN ('DRAFT','REVIEWING','FINALIZED','PUBLISHED')),
+                          CHECK (status IN ('DRAFT','REVIEW','FINALIZED','PUBLISHED')),
     -- how many candidates to pull per required slot (e.g. 2.5x)
     candidate_multiplier  NUMERIC(3,1) NOT NULL DEFAULT 2.5,
     created_by            BIGINT NOT NULL REFERENCES users(id),

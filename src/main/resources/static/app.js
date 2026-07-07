@@ -68,9 +68,9 @@ const submitJson = async (url, form) => {
         if (response.ok) {
             if (url.includes('/login')) {
                 currentUser = data;
-                userName.textContent = data.fullName || data.email;
-                showUserScreen();
-                showMessage(`Login successful! Welcome ${data.fullName || data.email}`, 'success', messageBox);
+                sessionStorage.setItem('eqfCurrentUser', JSON.stringify(data));
+                window.location.href = '/questions.html';
+                return;
             } else if (url.includes('/register')) {
                 showMessage('Registration successful! You can now login.', 'success', document.querySelector("#messageBox2"));
                 setTimeout(() => {

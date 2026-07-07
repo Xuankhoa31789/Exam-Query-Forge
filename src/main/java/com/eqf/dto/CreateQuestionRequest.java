@@ -6,7 +6,6 @@ import java.util.List;
 import com.eqf.model.DifficultyLevel;
 import com.eqf.model.QuestionType;
 
-/** Tạm thời nhận authorId trong request. TODO: lấy từ user đăng nhập khi có auth. */
 public class CreateQuestionRequest {
     private Long subjectId;
     private Long chapterId;          // optional

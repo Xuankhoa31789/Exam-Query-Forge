@@ -40,6 +40,7 @@ public class LoginController {
                     "message", "Login successful",
                     "email", user.getEmail(),
                     "fullName", user.getFullName(),
+                    "userId", user.getId(),
                     "token", generateToken(user.getId())
             );
         } catch (IllegalArgumentException e) {

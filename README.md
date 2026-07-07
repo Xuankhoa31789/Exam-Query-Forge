@@ -18,7 +18,7 @@ The current `main` branch contains a basic Maven + Spring Boot application with:
 Then open:
 
 ```text
-http://localhost:8080
+  http://localhost:8080
 ```
 
 If Maven is installed globally later, this also works:

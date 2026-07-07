@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Query Forge — Ngân hàng câu hỏi</title>
+  <style>
+    :root {
+      --bg: #f4f7fb; --card: #ffffff; --border: #d7deea; --ink: #1f2937;
+      --muted: #6b7280; --accent: #2563eb; --accent-dark: #1d4ed8;
+      --green: #047857; --green-bg: #ecfdf5; --amber: #b45309; --amber-bg: #fffbeb;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px 64px; }
+    header.top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    header.top h1 { font-size: 22px; margin: 0; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(31,41,55,.08); margin-bottom: 24px; }
+    .card h2 { margin: 0 0 16px; font-size: 18px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; }
+    textarea { resize: vertical; min-height: 70px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .field { margin-bottom: 16px; }
+    button { cursor: pointer; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; padding: 10px 18px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-ghost { background: #eef2ff; color: var(--accent-dark); }
+    .btn-small { padding: 6px 12px; font-size: 13px; }
+    .btn-danger { background: #fef2f2; color: #b91c1c; }
+    .option-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .option-row .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+    .option-row input[type=checkbox] { width: auto; }
+    .msg { padding: 12px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none; }
+    .msg.show { display: block; }
+    .msg.ok { background: var(--green-bg); color: var(--green); border: 1px solid #a7f3d0; }
+    .msg.err { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .b-rec { background:#eff6ff; color:#1d4ed8; } .b-com { background:#ecfeff; color:#0e7490; }
+    .b-app { background:#fff7ed; color:#c2410c; } .b-high { background:#fef2f2; color:#b91c1c; }
+    .b-pool { background: var(--green-bg); color: var(--green); }
+    .hidden { display: none; }
+    .who { font-size: 14px; color: var(--muted); }
+    .who b { color: var(--ink); }
+    .muted { color: var(--muted); font-size: 13px; }
+    .ai-hint { margin-top: 10px; padding: 12px 14px; border-radius: 8px; font-size: 13px;
+               background: #f5f3ff; border: 1px solid #ddd6fe; color: #5b21b6; display: none; line-height: 1.5; }
+    .ai-hint.show { display: block; }
+    .ai-hint.loading { color: #6d28d9; }
+    .ai-tip { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .ai-note { font-size: 12px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a;
+               border-radius: 8px; padding: 8px 12px; margin-bottom: 16px; }
+    .toolbar { display: flex; gap: 12px; align-items: end; margin-bottom: 16px; }
+    .toolbar .field { margin: 0; flex: 1; }
+    a.back { color: var(--accent); text-decoration: none; font-size: 14px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Exam Query Forge</p>
+      <h1>Ngân hàng câu hỏi</h1>
+    </div>
+    <a class="back" href="/index.html">← Trang đăng nhập</a>
+  </header>
+
+  <!-- LOGIN -->
+  <section id="loginCard" class="card">
+    <h2>Đăng nhập</h2>
+    <div id="loginMsg" class="msg err"></div>
+    <div class="row">
+      <div class="field" style="margin:0">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="khoacthh@gmail.com">
+      </div>
+      <div class="field" style="margin:0">
+        <label>Mật khẩu</label>
+        <input id="loginPassword" type="password" placeholder="••••••">
+      </div>
+    </div>
+    <div style="margin-top:16px"><button class="btn-primary" onclick="doLogin()">Đăng nhập</button></div>
+  </section>
+
+  <!-- APP (hidden until login) -->
+  <div id="app" class="hidden">
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="who">Đang đăng nhập: <b id="whoName"></b></span>
+      <button class="btn-ghost btn-small" onclick="doLogout()">Đăng xuất</button>
+    </div>
+
+    <!-- CREATE -->
+    <section class="card">
+      <h2>Thêm câu hỏi mới</h2>
+      <div class="ai-note">⚙️ Phân tích AI đang ở bản thử nghiệm (heuristic) — gắn mô hình AI thật khi có API key.</div>
+      <div id="formMsg" class="msg"></div>
+      <div class="row">
+        <div class="field" style="margin:0">
+          <label>Bộ môn</label>
+          <select id="subject" onchange="loadChapters()"></select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Chương (tùy chọn)</label>
+          <select id="chapter"><option value="">— Không chọn —</option></select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="margin:0">
+          <label>Độ khó</label>
+          <select id="difficulty">
+            <option value="RECOGNITION">Nhận biết</option>
+            <option value="COMPREHENSION">Thông hiểu</option>
+            <option value="APPLICATION">Vận dụng</option>
+            <option value="HIGH_APPLICATION">Vận dụng cao</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Loại câu hỏi</label>
+          <select id="qtype">
+            <option value="MULTIPLE_CHOICE">Trắc nghiệm</option>
+            <option value="TRUE_FALSE">Đúng / Sai</option>
+            <option value="ESSAY">Tự luận</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Nội dung câu hỏi</label>
+        <textarea id="content" placeholder="Nhập đề câu hỏi..."></textarea>
+        <div class="ai-tip">💡 Gõ đề xong, nhấn <b>Tab</b> trong ô này để AI gợi ý &amp; tự điền độ khó.</div>
+        <div id="aiHint" class="ai-hint"></div>
+      </div>
+      <div class="field">
+        <label>Phương án trả lời <span class="muted">(tích vào ô đáp án đúng)</span></label>
+        <div id="options"></div>
+        <button class="btn-ghost btn-small" onclick="addOption()">+ Thêm phương án</button>
+      </div>
+      <button class="btn-primary" onclick="submitQuestion()">Lưu vào pool</button>
+    </section>
+
+    <!-- POOL -->
+    <section class="card">
+      <h2>Pool câu hỏi</h2>
+      <div class="toolbar">
+        <div class="field">
+          <label>Lọc theo bộ môn</label>
+          <select id="filterSubject" onchange="loadPool()"></select>
+        </div>
+        <button class="btn-ghost btn-small" onclick="loadPool()">Làm mới</button>
+      </div>
+      <div id="poolEmpty" class="muted">Chưa có câu hỏi nào trong pool.</div>
+      <table id="poolTable" class="hidden">
+        <thead><tr><th>#</th><th>Nội dung</th><th>Độ khó</th><th>Loại</th><th>Trạng thái</th><th>Tác giả</th></tr></thead>
+        <tbody id="poolBody"></tbody>
+      </table>
+    </section>
+  </div>
+</div>
+
+<script>
+  let currentUserId = null;
+  const LOGIN_STORAGE_KEY = 'eqfCurrentUser';
+
+  const DIFF = { RECOGNITION:['Nhận biết','b-rec'], COMPREHENSION:['Thông hiểu','b-com'],
+                 APPLICATION:['Vận dụng','b-app'], HIGH_APPLICATION:['Vận dụng cao','b-high'] };
+  const QTYPE = { MULTIPLE_CHOICE:'Trắc nghiệm', TRUE_FALSE:'Đúng/Sai', ESSAY:'Tự luận' };
+
+  function showMsg(el, text, ok) {
+    el.textContent = text;
+    el.className = 'msg show ' + (ok ? 'ok' : 'err');
+  }
+  function hideMsg(el) { el.className = 'msg'; }
+
+  function getLoginUserId(data) {
+    return data.userId || (data.token ? Number(data.token.split('_')[1]) : null);
+  }
+
+  function readSavedLogin() {
+    try {
+      return JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
+    } catch (e) {
+      sessionStorage.removeItem(LOGIN_STORAGE_KEY);
+      return null;
+    }
+  }
+
+  async function openQuestionBoard(data, msg) {
+    currentUserId = getLoginUserId(data);
+    if (!currentUserId) {
+      if (msg) showMsg(msg, 'Cannot read user ID from the login response', false);
+      return false;
+    }
+
+    const displayName = data.fullName || data.email || 'User';
+    document.getElementById('whoName').textContent = displayName + ' (id ' + currentUserId + ')';
+    document.getElementById('loginCard').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('options').innerHTML = '';
+    await loadSubjects();
+    addOption();
+    addOption();
+    loadPool();
+    return true;
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const msg = document.getElementById('loginMsg');
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) { showMsg(msg, data.message || 'Đăng nhập thất bại', false); return; }
+      const opened = await openQuestionBoard(data, msg);
+      if (opened) {
+        sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(data));
+      }
+    } catch (e) { showMsg(msg, 'Lỗi kết nối: ' + e.message, false); }
+  }
+
+  function doLogout() {
+    currentUserId = null;
+    sessionStorage.removeItem(LOGIN_STORAGE_KEY);
+    window.location.href = '/index.html';
+  }
+
+  async function loadSubjects() {
+    const res = await fetch('/api/subjects');
+    const subjects = await res.json();
+    const opts = subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    document.getElementById('subject').innerHTML = opts;
+    document.getElementById('filterSubject').innerHTML =
+      '<option value="">— Tất cả —</option>' + opts;
+    loadChapters();
+  }
+
+  async function loadChapters() {
+    const subjectId = document.getElementById('subject').value;
+    const sel = document.getElementById('chapter');
+    sel.innerHTML = '<option value="">— Không chọn —</option>';
+    if (!subjectId) return;
+    const res = await fetch('/api/chapters?subjectId=' + subjectId);
+    const chapters = await res.json();
+    chapters.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name + (c.grade ? ' (lớp ' + c.grade + ')' : '');
+      sel.appendChild(o);
+    });
+  }
+
+  function addOption(text = '', correct = false) {
+    const wrap = document.getElementById('options');
+    const div = document.createElement('div');
+    div.className = 'option-row';
+    div.innerHTML =
+      `<input type="text" placeholder="Nội dung phương án" value="${text.replace(/"/g,'&quot;')}">
+       <label class="chk"><input type="checkbox" ${correct?'checked':''}> Đáp án đúng</label>
+       <button class="btn-danger btn-small" onclick="this.parentElement.remove()">Xóa</button>`;
+    wrap.appendChild(div);
+  }
+
+  async function submitQuestion() {
+    const msg = document.getElementById('formMsg');
+    hideMsg(msg);
+    const content = document.getElementById('content').value.trim();
+    if (!content) { showMsg(msg, 'Vui lòng nhập nội dung câu hỏi', false); return; }
+
+    const options = [];
+    document.querySelectorAll('#options .option-row').forEach((row, i) => {
+      const text = row.querySelector('input[type=text]').value.trim();
+      if (text) options.push({
+        content: text,
+        isCorrect: row.querySelector('input[type=checkbox]').checked,
+        sortOrder: i + 1
+      });
+    });
+
+    const body = {
+      subjectId: Number(document.getElementById('subject').value),
+      chapterId: document.getElementById('chapter').value ? Number(document.getElementById('chapter').value) : null,
+      authorId: currentUserId,
+      content: content,
+      questionType: document.getElementById('qtype').value,
+      difficulty: document.getElementById('difficulty').value,
+      options: options
+    };
+
+    try {
+      // 1) tạo câu hỏi (DRAFT)
+      const res = await fetch('/api/questions', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) { showMsg(msg, data.message || 'Không tạo được câu hỏi', false); return; }
+
+      // 2) đẩy vào pool (IN_POOL) để hiện ngay
+      await fetch('/api/questions/' + data.id + '/publish', { method: 'POST' });
+
+      showMsg(msg, '✓ Đã lưu câu hỏi #' + data.id + ' vào pool', true);
+      document.getElementById('content').value = '';
+      document.getElementById('options').innerHTML = '';
+      addOption(); addOption();
+      loadPool();
+    } catch (e) { showMsg(msg, 'Lỗi kết nối: ' + e.message, false); }
+  }
+
+  async function loadPool() {
+    const subjectId = document.getElementById('filterSubject').value;
+    const url = '/api/questions' + (subjectId ? '?subjectId=' + subjectId : '');
+    const res = await fetch(url);
+    const list = await res.json();
+    const body = document.getElementById('poolBody');
+    const table = document.getElementById('poolTable');
+    const empty = document.getElementById('poolEmpty');
+    body.innerHTML = '';
+    if (!list.length) { table.classList.add('hidden'); empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden'); table.classList.remove('hidden');
+    list.forEach(q => {
+      const d = DIFF[q.difficulty] || [q.difficulty, ''];
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${q.id}</td>
+         <td>${escapeHtml(q.content)}</td>
+         <td><span class="badge ${d[1]}">${d[0]}</span></td>
+         <td>${QTYPE[q.questionType] || q.questionType}</td>
+         <td><span class="badge b-pool">${q.status}</span></td>
+         <td>${escapeHtml(q.authorName || '')}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s) {
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---- AI gợi ý độ khó: nhấn Tab trong ô nội dung ----
+  async function suggestDifficulty() {
+    const content = document.getElementById('content').value.trim();
+    const hint = document.getElementById('aiHint');
+    if (!content) return;
+    const subjectId = document.getElementById('subject').value;
+    hint.className = 'ai-hint show loading';
+    hint.textContent = '✨ Đang phân tích...';
+    try {
+      const res = await fetch('/api/ai/analyze', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ content, subjectId: subjectId ? Number(subjectId) : null })
+      });
+      const data = await res.json();
+      if (!res.ok) { hint.className = 'ai-hint show'; hint.textContent = data.message || 'Không phân tích được'; return; }
+      document.getElementById('difficulty').value = data.difficulty;
+      const label = (DIFF[data.difficulty] || [data.difficulty])[0];
+      hint.className = 'ai-hint show';
+      hint.innerHTML = `✨ <b>AI gợi ý:</b> ${label} — ${escapeHtml(data.reasoning)} `
+        + `<span class="muted">(đã điền vào ô Độ khó · ${escapeHtml(data.modelName)})</span>`;
+    } catch (e) {
+      hint.className = 'ai-hint show'; hint.textContent = 'Lỗi kết nối: ' + e.message;
+    }
+  }
+
+  document.getElementById('content').addEventListener('keydown', function (e) {
+    if (e.key === 'Tab' && !e.shiftKey && this.value.trim().length > 0) {
+      e.preventDefault();
+      suggestDifficulty();
+    }
+  });
+
+  const savedLogin = readSavedLogin();
+  if (savedLogin) {
+    openQuestionBoard(savedLogin).catch((e) => {
+      sessionStorage.removeItem(LOGIN_STORAGE_KEY);
+      showMsg(document.getElementById('loginMsg'), 'Lỗi kết nối: ' + e.message, false);
+    });
+  }
+</script>
+</body>
+</html>
