@@ -1,15 +1,25 @@
 package com.eqf.service;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.eqf.dto.CreateQuestionRequest;
 import com.eqf.dto.OptionDto;
-import com.eqf.model.*;
+import com.eqf.model.AnswerOption;
+import com.eqf.model.Chapter;
+import com.eqf.model.DifficultyLevel;
+import com.eqf.model.DifficultySource;
+import com.eqf.model.Question;
+import com.eqf.model.QuestionStatus;
+import com.eqf.model.Subject;
+import com.eqf.model.User;
+import com.eqf.model.VerifyStatus;
 import com.eqf.repository.ChapterRepository;
 import com.eqf.repository.QuestionRepository;
 import com.eqf.repository.SubjectRepository;
 import com.eqf.repository.UserRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
 
 @Service
 public class QuestionService {
@@ -43,14 +53,14 @@ public class QuestionService {
         }
 
         Subject subject = subjectRepository.findById(req.getSubjectId())
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bộ môn id=" + req.getSubjectId()));
+                .orElseThrow(() -> new IllegalArgumentException("Not found id=" + req.getSubjectId()));
 
         User author = userRepository.findById(req.getAuthorId())
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tác giả id=" + req.getAuthorId()));
+                .orElseThrow(() -> new IllegalArgumentException("Not found id=" + req.getAuthorId()));
 
         // Chỉ giáo viên đã xác minh mới được đóng góp câu hỏi.
         if (author.getVerifyStatus() != VerifyStatus.VERIFIED) {
-            throw new IllegalArgumentException("Tài khoản chưa được xác minh, không thể đóng góp câu hỏi");
+            throw new IllegalArgumentException("Tài khoản chưa được xác minh");
         }
 
         Question q = new Question();
@@ -64,7 +74,7 @@ public class QuestionService {
 
         if (req.getChapterId() != null) {
             Chapter chapter = chapterRepository.findById(req.getChapterId())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chương id=" + req.getChapterId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Not found id=" + req.getChapterId()));
             if (!chapter.getSubject().getId().equals(subject.getId())) {
                 throw new IllegalArgumentException("Chương không thuộc bộ môn đã chọn");
             }
@@ -94,7 +104,7 @@ public class QuestionService {
     @Transactional(readOnly = true)
     public Question getById(Long id) {
         return questionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy câu hỏi id=" + id));
+                .orElseThrow(() -> new IllegalArgumentException("Not found id=" + id));
     }
 
     /** Xem pool: chỉ câu IN_POOL, lọc theo môn/chương/độ khó (tham số null = bỏ qua). */

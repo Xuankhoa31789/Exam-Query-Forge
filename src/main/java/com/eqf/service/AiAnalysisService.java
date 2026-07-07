@@ -1,13 +1,14 @@
 package com.eqf.service;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.eqf.model.AiAnalysis;
 import com.eqf.model.Question;
 import com.eqf.model.Subject;
 import com.eqf.repository.AiAnalysisRepository;
 import com.eqf.repository.QuestionRepository;
 import com.eqf.repository.SubjectRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AiAnalysisService {
@@ -44,7 +45,7 @@ public class AiAnalysisService {
     @Transactional
     public DifficultyAnalyzer.Result analyzeAndStore(Long questionId) {
         Question q = questionRepository.findById(questionId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy câu hỏi id=" + questionId));
+                .orElseThrow(() -> new IllegalArgumentException("Not found id=" + questionId));
         String subjectName = q.getSubject() != null ? q.getSubject().getName() : null;
 
         DifficultyAnalyzer.Result r = analyzer.analyze(q.getContent(), subjectName);
