@@ -70,9 +70,9 @@ runs, then move on. Do NOT build all entities, then all repos.
       Real LLM = nhịp 2, pending an API key: add a new `DifficultyAnalyzer` impl marked
       `@Primary` — do not touch the service/controller/UI.
 - [x] Login/logout flow fixed: login stored in `sessionStorage('eqfCurrentUser')`,
-      shared across index.html and questions.html; logout redirects to `/index.html`.
-- [ ] **Slice 4 — Exams + matrix + candidate pulling.  ← NEXT**
-- [ ] Slice 5 — Voting + selection + finalize.
+      shared across index.html, questions.html, and exams.html; logout redirects to `/index.html`.
+- [x] **Slice 4 — Exams + matrix + candidate pulling.** Backend REST + `exams.html` UI complete.
+- [ ] **Slice 5 — Voting + selection + finalize.  ← NEXT**
 - [ ] (Later) real JWT/session auth + role enforcement; deploy on Postgres.
 
 ## Gotchas learned the hard way (READ THESE)
