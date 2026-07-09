@@ -5,14 +5,12 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Tạm thời nhận createdById từ client cho đến khi có auth server-side. */
 public class CreateExamRequest {
     private String title;
     private Long subjectId;
     private Integer grade;
     private Integer totalQuestions;
     private BigDecimal candidateMultiplier;
-    private Long createdById;
     private LocalDate examDate;
     private List<ExamMatrixItemRequest> matrix = new ArrayList<>();
 
@@ -26,8 +24,6 @@ public class CreateExamRequest {
     public void setTotalQuestions(Integer totalQuestions) { this.totalQuestions = totalQuestions; }
     public BigDecimal getCandidateMultiplier() { return candidateMultiplier; }
     public void setCandidateMultiplier(BigDecimal candidateMultiplier) { this.candidateMultiplier = candidateMultiplier; }
-    public Long getCreatedById() { return createdById; }
-    public void setCreatedById(Long createdById) { this.createdById = createdById; }
     public LocalDate getExamDate() { return examDate; }
     public void setExamDate(LocalDate examDate) { this.examDate = examDate; }
     public List<ExamMatrixItemRequest> getMatrix() { return matrix; }

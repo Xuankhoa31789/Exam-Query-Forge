@@ -160,6 +160,7 @@
   </div>
 </div>
 
+<script src="/auth.js"></script>
 <script>
   const LOGIN_STORAGE_KEY = 'eqfCurrentUser';
   const DIFFICULTIES = [
@@ -190,13 +191,7 @@
   }
 
   function userIdFromToken(data) {
-    if (data && Number.isInteger(Number(data.userId)) && Number(data.userId) > 0) {
-      return Number(data.userId);
-    }
-    if (!data || typeof data.token !== 'string') return null;
-    const parts = data.token.split('_');
-    const id = Number(parts[1]);
-    return parts[0] === 'token' && Number.isInteger(id) && id > 0 ? id : null;
+    return eqfUserId(data);
   }
 
   function readSavedLogin() {
@@ -209,7 +204,7 @@
   }
 
   async function apiJson(url, options = {}) {
-    const response = await fetch(url, options);
+    const response = await apiFetch(url, options);
     let data = null;
     try { data = await response.json(); } catch (error) { /* response without JSON */ }
     if (!response.ok) {
@@ -344,7 +339,7 @@
     const message = document.getElementById('pageMsg');
     hideMsg(message);
     try {
-      const candidates = await apiJson('/api/exams/' + currentExamId + '/candidates/voting?voterId=' + currentUserId);
+      const candidates = await apiJson('/api/exams/' + currentExamId + '/candidates/voting');
       renderCandidates(candidates);
     } catch (error) {
       showMsg(message, error.message, false);
@@ -450,7 +445,7 @@
     try {
       await apiJson('/api/candidates/' + candidateId + '/vote', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ voterId: currentUserId, value, comment })
+        body: JSON.stringify({ value, comment })
       });
       showMsg(message, 'Đã lưu vote cho candidate #' + candidateId, true);
       await loadCandidates();
@@ -484,10 +479,7 @@
     hideMsg(message);
     setButtonLoading(button, true, 'Đang chốt...');
     try {
-      await apiJson('/api/exams/' + currentExamId + '/finalize', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ userId: currentUserId })
-      });
+      await apiJson('/api/exams/' + currentExamId + '/finalize', { method: 'POST' });
       if (currentExam) {
         currentExam.status = 'FINALIZED';
         renderExamMeta(currentExam);

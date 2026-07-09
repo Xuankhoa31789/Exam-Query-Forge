@@ -39,9 +39,12 @@ public class QuestionService {
         this.userRepository = userRepository;
     }
 
-    /** Tạo câu hỏi mới (kèm các phương án). Trạng thái mặc định DRAFT. */
+    /** Tạo câu hỏi mới (kèm các phương án). Trạng thái mặc định DRAFT. authorId lấy từ JWT. */
     @Transactional
-    public Question create(CreateQuestionRequest req) {
+    public Question create(CreateQuestionRequest req, Long authorId) {
+        if (authorId == null) {
+            throw new IllegalArgumentException("authorId là bắt buộc");
+        }
         if (req.getContent() == null || req.getContent().isBlank()) {
             throw new IllegalArgumentException("Nội dung câu hỏi là bắt buộc");
         }
@@ -55,8 +58,8 @@ public class QuestionService {
         Subject subject = subjectRepository.findById(req.getSubjectId())
                 .orElseThrow(() -> new IllegalArgumentException("Not found id=" + req.getSubjectId()));
 
-        User author = userRepository.findById(req.getAuthorId())
-                .orElseThrow(() -> new IllegalArgumentException("Not found id=" + req.getAuthorId()));
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new IllegalArgumentException("Not found id=" + authorId));
 
         // Chỉ giáo viên đã xác minh mới được đóng góp câu hỏi.
         if (author.getVerifyStatus() != VerifyStatus.VERIFIED) {

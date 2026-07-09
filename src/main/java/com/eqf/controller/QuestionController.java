@@ -3,7 +3,9 @@ package com.eqf.controller;
 import com.eqf.dto.CreateQuestionRequest;
 import com.eqf.dto.QuestionResponse;
 import com.eqf.model.DifficultyLevel;
+import com.eqf.security.AuthenticatedUser;
 import com.eqf.service.QuestionService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,10 +20,11 @@ public class QuestionController {
         this.questionService = questionService;
     }
 
-    /** Tạo câu hỏi mới (DRAFT). */
+    /** Tạo câu hỏi mới (DRAFT). Tác giả là người đang đăng nhập (từ JWT). */
     @PostMapping
-    public QuestionResponse create(@RequestBody CreateQuestionRequest request) {
-        return QuestionResponse.from(questionService.create(request));
+    public QuestionResponse create(@RequestBody CreateQuestionRequest request,
+                                   @AuthenticationPrincipal AuthenticatedUser user) {
+        return QuestionResponse.from(questionService.create(request, user.id()));
     }
 
     /** Đưa câu hỏi vào pool chung. */

@@ -167,6 +167,7 @@
   </div>
 </div>
 
+<script src="/auth.js"></script>
 <script>
   let currentUserId = null;
   const LOGIN_STORAGE_KEY = 'eqfCurrentUser';
@@ -182,7 +183,7 @@
   function hideMsg(el) { el.className = 'msg'; }
 
   function getLoginUserId(data) {
-    return data.userId || (data.token ? Number(data.token.split('_')[1]) : null);
+    return eqfUserId(data);
   }
 
   function readSavedLogin() {
@@ -238,7 +239,7 @@
   }
 
   async function loadSubjects() {
-    const res = await fetch('/api/subjects');
+    const res = await apiFetch('/api/subjects');
     const subjects = await res.json();
     const opts = subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     document.getElementById('subject').innerHTML = opts;
@@ -252,7 +253,7 @@
     const sel = document.getElementById('chapter');
     sel.innerHTML = '<option value="">— Không chọn —</option>';
     if (!subjectId) return;
-    const res = await fetch('/api/chapters?subjectId=' + subjectId);
+    const res = await apiFetch('/api/chapters?subjectId=' + subjectId);
     const chapters = await res.json();
     chapters.forEach(c => {
       const o = document.createElement('option');
@@ -291,7 +292,6 @@
     const body = {
       subjectId: Number(document.getElementById('subject').value),
       chapterId: document.getElementById('chapter').value ? Number(document.getElementById('chapter').value) : null,
-      authorId: currentUserId,
       content: content,
       questionType: document.getElementById('qtype').value,
       difficulty: document.getElementById('difficulty').value,
@@ -299,8 +299,8 @@
     };
 
     try {
-      // 1) tạo câu hỏi (DRAFT)
-      const res = await fetch('/api/questions', {
+      // 1) tạo câu hỏi (DRAFT) — tác giả là người đang đăng nhập (server đọc từ JWT)
+      const res = await apiFetch('/api/questions', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify(body)
       });
@@ -308,7 +308,7 @@
       if (!res.ok) { showMsg(msg, data.message || 'Không tạo được câu hỏi', false); return; }
 
       // 2) đẩy vào pool (IN_POOL) để hiện ngay
-      await fetch('/api/questions/' + data.id + '/publish', { method: 'POST' });
+      await apiFetch('/api/questions/' + data.id + '/publish', { method: 'POST' });
 
       showMsg(msg, '✓ Đã lưu câu hỏi #' + data.id + ' vào pool', true);
       document.getElementById('content').value = '';
@@ -321,7 +321,7 @@
   async function loadPool() {
     const subjectId = document.getElementById('filterSubject').value;
     const url = '/api/questions' + (subjectId ? '?subjectId=' + subjectId : '');
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     const list = await res.json();
     const body = document.getElementById('poolBody');
     const table = document.getElementById('poolTable');
@@ -356,7 +356,7 @@
     hint.className = 'ai-hint show loading';
     hint.textContent = '✨ Đang phân tích...';
     try {
-      const res = await fetch('/api/ai/analyze', {
+      const res = await apiFetch('/api/ai/analyze', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ content, subjectId: subjectId ? Number(subjectId) : null })
       });

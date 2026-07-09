@@ -9,7 +9,6 @@ import com.eqf.model.QuestionType;
 public class CreateQuestionRequest {
     private Long subjectId;
     private Long chapterId;          // optional
-    private Long authorId;
     private String content;
     private QuestionType questionType;
     private DifficultyLevel difficulty;
@@ -20,9 +19,6 @@ public class CreateQuestionRequest {
 
     public Long getChapterId() { return chapterId; }
     public void setChapterId(Long chapterId) { this.chapterId = chapterId; }
-
-    public Long getAuthorId() { return authorId; }
-    public void setAuthorId(Long authorId) { this.authorId = authorId; }
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }

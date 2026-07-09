@@ -52,17 +52,20 @@ public class ExamService {
         this.questionUsageHistoryRepository = questionUsageHistoryRepository;
     }
 
-    /** Tạo kỳ thi và toàn bộ ma trận trong cùng một transaction. */
+    /** Tạo kỳ thi và toàn bộ ma trận trong cùng một transaction. createdById lấy từ JWT. */
     @Transactional
-    public ExamDetails create(CreateExamRequest request) {
+    public ExamDetails create(CreateExamRequest request, Long createdById) {
+        if (createdById == null) {
+            throw new IllegalArgumentException("Người tạo là bắt buộc");
+        }
         validateCreateRequest(request);
 
         Subject subject = subjectRepository.findById(request.getSubjectId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Không tìm thấy bộ môn id=" + request.getSubjectId()));
-        User createdBy = userRepository.findById(request.getCreatedById())
+        User createdBy = userRepository.findById(createdById)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Không tìm thấy người tạo id=" + request.getCreatedById()));
+                        "Không tìm thấy người tạo id=" + createdById));
 
         Exam exam = new Exam();
         exam.setTitle(request.getTitle().trim());
@@ -333,9 +336,6 @@ public class ExamService {
         }
         if (request.getSubjectId() == null) {
             throw new IllegalArgumentException("Bộ môn là bắt buộc");
-        }
-        if (request.getCreatedById() == null) {
-            throw new IllegalArgumentException("Người tạo là bắt buộc");
         }
         if (request.getTotalQuestions() == null || request.getTotalQuestions() <= 0) {
             throw new IllegalArgumentException("Tổng số câu phải lớn hơn 0");

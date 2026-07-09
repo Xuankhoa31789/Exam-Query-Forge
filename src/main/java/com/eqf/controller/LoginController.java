@@ -8,15 +8,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eqf.model.User;
+import com.eqf.security.JwtService;
 import com.eqf.service.UserService;
 
 @RestController
 @RequestMapping("/api/login")
 public class LoginController {
     private final UserService userService;
+    private final JwtService jwtService;
 
-    public LoginController(UserService userService) {
+    public LoginController(UserService userService, JwtService jwtService) {
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping
@@ -41,15 +44,12 @@ public class LoginController {
                     "email", user.getEmail(),
                     "fullName", user.getFullName(),
                     "userId", user.getId(),
-                    "token", generateToken(user.getId())
+                    "role", user.getRole().name(),
+                    "token", jwtService.generateToken(user)
             );
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid email or password");
         }
-    }
-
-    private String generateToken(Long userId) {
-        return "token_" + userId + "_" + System.currentTimeMillis();
     }
 
     public static class LoginRequest {

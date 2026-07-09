@@ -200,6 +200,7 @@
   </div>
 </div>
 
+<script src="/auth.js"></script>
 <script>
   const LOGIN_STORAGE_KEY = 'eqfCurrentUser';
   const COOLDOWN_DAYS = 365;
@@ -227,10 +228,7 @@
   }
 
   function userIdFromToken(data) {
-    if (!data || typeof data.token !== 'string') return null;
-    const parts = data.token.split('_');
-    const id = Number(parts[1]);
-    return parts[0] === 'token' && Number.isInteger(id) && id > 0 ? id : null;
+    return eqfUserId(data);
   }
 
   function readSavedLogin() {
@@ -243,7 +241,7 @@
   }
 
   async function apiJson(url, options = {}) {
-    const response = await fetch(url, options);
+    const response = await apiFetch(url, options);
     let data = null;
     try { data = await response.json(); } catch (error) { /* response không có JSON */ }
     if (!response.ok) {
@@ -375,7 +373,6 @@
       grade: gradeText ? Number(gradeText) : null,
       totalQuestions,
       candidateMultiplier,
-      createdById: currentUserId,
       examDate: examDate || null,
       matrix
     };

@@ -52,8 +52,8 @@ class ExamServiceTest {
         entityManager.persist(new QuestionUsageHistory(inCooldown, previousExam, now.minusDays(5)));
         entityManager.flush();
 
-        CreateExamRequest request = validRequest(subject.getId(), creator.getId());
-        ExamService.ExamDetails created = examService.create(request);
+        CreateExamRequest request = validRequest(subject.getId());
+        ExamService.ExamDetails created = examService.create(request, creator.getId());
 
         assertThat(created.exam().getStatus()).isEqualTo(ExamStatus.DRAFT);
         assertThat(created.matrix()).hasSize(1);
@@ -90,10 +90,11 @@ class ExamServiceTest {
         creator.setSubject(subject);
         creator = entityManager.persist(creator);
 
-        CreateExamRequest request = validRequest(subject.getId(), creator.getId());
+        CreateExamRequest request = validRequest(subject.getId());
         request.setTotalQuestions(2);
 
-        assertThatThrownBy(() -> examService.create(request))
+        Long creatorId = creator.getId();
+        assertThatThrownBy(() -> examService.create(request, creatorId))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("totalQuestions");
     }
@@ -138,14 +139,13 @@ class ExamServiceTest {
         assertThat(middleCandidate.getStatus()).isEqualTo(CandidateStatus.SELECTED);
     }
 
-    private CreateExamRequest validRequest(Long subjectId, Long createdById) {
+    private CreateExamRequest validRequest(Long subjectId) {
         CreateExamRequest request = new CreateExamRequest();
         request.setTitle("Đề giữa kỳ");
         request.setSubjectId(subjectId);
         request.setGrade(10);
         request.setTotalQuestions(1);
         request.setCandidateMultiplier(new BigDecimal("2.0"));
-        request.setCreatedById(createdById);
         request.setMatrix(List.of(
                 new ExamMatrixItemRequest(DifficultyLevel.RECOGNITION, 1)
         ));

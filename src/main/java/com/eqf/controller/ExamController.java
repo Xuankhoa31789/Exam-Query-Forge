@@ -4,11 +4,12 @@ import com.eqf.dto.CandidatePullResponse;
 import com.eqf.dto.CreateExamRequest;
 import com.eqf.dto.ExamCandidateResponse;
 import com.eqf.dto.ExamResponse;
-import com.eqf.dto.FinalizeExamRequest;
 import com.eqf.dto.VotingCandidateResponse;
 import com.eqf.model.ExamStatus;
+import com.eqf.security.AuthenticatedUser;
 import com.eqf.service.ExamService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,11 +31,12 @@ public class ExamController {
                 .toList();
     }
 
-    /** Tạo kỳ thi kèm toàn bộ ma trận difficulty/requiredCount. */
+    /** Tạo kỳ thi kèm toàn bộ ma trận difficulty/requiredCount. Người tạo lấy từ JWT. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ExamResponse create(@RequestBody CreateExamRequest request) {
-        ExamService.ExamDetails details = examService.create(request);
+    public ExamResponse create(@RequestBody CreateExamRequest request,
+                               @AuthenticationPrincipal AuthenticatedUser user) {
+        ExamService.ExamDetails details = examService.create(request, user.id());
         return ExamResponse.from(details.exam(), details.matrix(), details.candidateCount());
     }
 
@@ -67,10 +69,11 @@ public class ExamController {
                 .toList();
     }
 
+    /** Danh sách candidates kèm vote của chính người đang đăng nhập (từ JWT). */
     @GetMapping("/{id}/candidates/voting")
     public List<VotingCandidateResponse> listVotingCandidates(@PathVariable Long id,
-                                                              @RequestParam Long voterId) {
-        return examService.listVotingCandidates(id, voterId).stream()
+                                                              @AuthenticationPrincipal AuthenticatedUser user) {
+        return examService.listVotingCandidates(id, user.id()).stream()
                 .map(view -> VotingCandidateResponse.from(
                         view.candidate(), view.totalScore(), view.myVote()))
                 .toList();
@@ -83,10 +86,11 @@ public class ExamController {
                 .toList();
     }
 
+    /** Chốt đề: chỉ người tạo kỳ thi (xác định qua JWT) mới được phép. */
     @PostMapping("/{id}/finalize")
     public List<ExamCandidateResponse> finalizeExam(@PathVariable Long id,
-                                                    @RequestBody FinalizeExamRequest request) {
-        return examService.finalizeExam(id, request.getUserId()).selectedCandidates().stream()
+                                                    @AuthenticationPrincipal AuthenticatedUser user) {
+        return examService.finalizeExam(id, user.id()).selectedCandidates().stream()
                 .map(ExamCandidateResponse::from)
                 .toList();
     }

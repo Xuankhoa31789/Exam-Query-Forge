@@ -31,7 +31,8 @@ class VoteServiceTest {
 
         Vote first = voteService.castVote(
                 fixture.candidate().getId(),
-                voteRequest(fixture.voter().getId(), 1, null));
+                fixture.voter().getId(),
+                voteRequest(1, null));
 
         assertThat(first.getValue()).isEqualTo((short) 1);
         assertThat(first.getComment()).isNull();
@@ -39,7 +40,8 @@ class VoteServiceTest {
 
         Vote updated = voteService.castVote(
                 fixture.candidate().getId(),
-                voteRequest(fixture.voter().getId(), 0, "Can sua wording"));
+                fixture.voter().getId(),
+                voteRequest(0, "Can sua wording"));
 
         assertThat(updated.getId()).isEqualTo(first.getId());
         assertThat(updated.getValue()).isEqualTo((short) 0);
@@ -54,7 +56,8 @@ class VoteServiceTest {
 
         assertThatThrownBy(() -> voteService.castVote(
                 fixture.candidate().getId(),
-                voteRequest(fixture.voter().getId(), -1, "  ")))
+                fixture.voter().getId(),
+                voteRequest(-1, "  ")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("comment");
     }
@@ -65,7 +68,8 @@ class VoteServiceTest {
 
         assertThatThrownBy(() -> voteService.castVote(
                 fixture.candidate().getId(),
-                voteRequest(fixture.voter().getId(), 1, null)))
+                fixture.voter().getId(),
+                voteRequest(1, null)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("xac minh");
     }
@@ -76,7 +80,8 @@ class VoteServiceTest {
 
         assertThatThrownBy(() -> voteService.castVote(
                 fixture.candidate().getId(),
-                voteRequest(fixture.voter().getId(), 1, null)))
+                fixture.voter().getId(),
+                voteRequest(1, null)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("REVIEW");
     }
@@ -119,9 +124,8 @@ class VoteServiceTest {
         return new Fixture(voter, candidate);
     }
 
-    private CastVoteRequest voteRequest(Long voterId, int value, String comment) {
+    private CastVoteRequest voteRequest(int value, String comment) {
         CastVoteRequest request = new CastVoteRequest();
-        request.setVoterId(voterId);
         request.setValue((short) value);
         request.setComment(comment);
         return request;

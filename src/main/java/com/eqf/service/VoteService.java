@@ -26,15 +26,16 @@ public class VoteService {
         this.userRepository = userRepository;
     }
 
+    /** voterId lấy từ JWT trong SecurityContext, không nhận từ client. */
     @Transactional
-    public Vote castVote(Long candidateId, CastVoteRequest request) {
+    public Vote castVote(Long candidateId, Long voterId, CastVoteRequest request) {
         if (candidateId == null) {
             throw new IllegalArgumentException("candidateId la bat buoc");
         }
         if (request == null) {
             throw new IllegalArgumentException("Du lieu vote la bat buoc");
         }
-        if (request.getVoterId() == null) {
+        if (voterId == null) {
             throw new IllegalArgumentException("voterId la bat buoc");
         }
         Short value = request.getValue();
@@ -52,13 +53,13 @@ public class VoteService {
             throw new IllegalArgumentException("Chi duoc vote khi ky thi dang o trang thai REVIEW");
         }
 
-        User voter = userRepository.findById(request.getVoterId())
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay voter id=" + request.getVoterId()));
+        User voter = userRepository.findById(voterId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay voter id=" + voterId));
         if (voter.getVerifyStatus() != VerifyStatus.VERIFIED) {
             throw new IllegalArgumentException("Chi giao vien da xac minh moi duoc vote");
         }
 
-        Vote vote = voteRepository.findByCandidateIdAndVoterId(candidateId, request.getVoterId())
+        Vote vote = voteRepository.findByCandidateIdAndVoterId(candidateId, voterId)
                 .orElseGet(Vote::new);
         vote.setCandidate(candidate);
         vote.setVoter(voter);
