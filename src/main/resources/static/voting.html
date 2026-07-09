@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Query Forge - Bình chọn & chốt đề</title>
+  <style>
+    :root {
+      --bg: #f4f7fb; --card: #ffffff; --border: #d7deea; --ink: #1f2937;
+      --muted: #6b7280; --accent: #2563eb; --accent-dark: #1d4ed8;
+      --green: #047857; --green-bg: #ecfdf5; --red: #b91c1c; --red-bg: #fef2f2;
+      --amber: #b45309; --amber-bg: #fffbeb; --soft: #f8fafc;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 64px; }
+    header.top { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 24px; }
+    header.top h1 { font-size: 22px; margin: 0; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 14px; justify-content: flex-end; }
+    .nav-links a { color: var(--accent); text-decoration: none; font-size: 14px; }
+    .nav-links a:hover { text-decoration: underline; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(31,41,55,.08); margin-bottom: 24px; }
+    .card h2 { margin: 0 0 16px; font-size: 18px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; }
+    textarea { resize: vertical; min-height: 68px; line-height: 1.45; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    button { cursor: pointer; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; padding: 10px 18px; }
+    button:disabled { cursor: not-allowed; opacity: .65; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-dark); }
+    .btn-ghost { background: #eef2ff; color: var(--accent-dark); }
+    .btn-small { padding: 7px 12px; font-size: 13px; }
+    .btn-danger { background: var(--red-bg); color: var(--red); }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .msg { padding: 12px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none; white-space: pre-wrap; }
+    .msg.show { display: block; }
+    .msg.ok { background: var(--green-bg); color: var(--green); border: 1px solid #a7f3d0; }
+    .msg.err { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+    .hidden { display: none !important; }
+    .who { font-size: 14px; color: var(--muted); }
+    .who b { color: var(--ink); }
+    .muted { color: var(--muted); font-size: 13px; }
+    .exam-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .meta-item { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: #f9fafb; }
+    .meta-label { display: block; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+    .meta-value { font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .b-rec { background:#eff6ff; color:#1d4ed8; } .b-com { background:#ecfeff; color:#0e7490; }
+    .b-app { background:#fff7ed; color:#c2410c; } .b-high { background:#fef2f2; color:#b91c1c; }
+    .b-selected { background: var(--green-bg); color: var(--green); }
+    .b-rejected { background: var(--red-bg); color: var(--red); }
+    .b-candidate { background: var(--amber-bg); color: var(--amber); }
+    .bucket { border: 1px solid var(--border); border-radius: 10px; background: #fff; margin-bottom: 18px; overflow: hidden; }
+    .bucket-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 16px; background: var(--soft); border-bottom: 1px solid var(--border); }
+    .bucket-head h3 { margin: 0; font-size: 15px; }
+    .candidate { padding: 16px; border-bottom: 1px solid #e5e7eb; }
+    .candidate:last-child { border-bottom: 0; }
+    .candidate-top { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start; }
+    .candidate-content { margin: 0 0 10px; line-height: 1.5; overflow-wrap: anywhere; }
+    .candidate-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .score { min-width: 74px; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--soft); text-align: center; }
+    .score span { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 700; }
+    .score strong { font-size: 24px; }
+    .vote-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
+    .vote-btn { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .vote-btn.active[data-value="1"] { background: var(--green-bg); color: var(--green); border-color: #86efac; }
+    .vote-btn.active[data-value="0"] { background: var(--amber-bg); color: var(--amber); border-color: #fcd34d; }
+    .vote-btn.active[data-value="-1"] { background: var(--red-bg); color: var(--red); border-color: #fecaca; }
+    .comment-box { margin-top: 10px; display: grid; gap: 8px; max-width: 620px; }
+    .final-list { display: grid; gap: 10px; }
+    .final-item { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 9px; background: #fff; }
+    .final-index { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--accent); font-weight: 700; }
+    @media (max-width: 760px) {
+      header.top { align-items: flex-start; flex-direction: column; }
+      .nav-links { justify-content: flex-start; }
+      .row, .exam-meta { grid-template-columns: 1fr; gap: 0; margin-bottom: 0; }
+      .candidate-top { grid-template-columns: 1fr; }
+      .score { width: 100%; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Exam Query Forge</p>
+      <h1>Bình chọn &amp; chốt đề</h1>
+    </div>
+    <nav class="nav-links" aria-label="Điều hướng">
+      <a href="/questions.html">Ngân hàng câu hỏi</a>
+      <a href="/exams.html">Kỳ thi &amp; ma trận đề</a>
+      <a href="/index.html">Trang đăng nhập</a>
+    </nav>
+  </header>
+
+  <section id="loginCard" class="card">
+    <h2>Đăng nhập</h2>
+    <div id="loginMsg" class="msg err" role="alert"></div>
+    <div class="row">
+      <div class="field" style="margin:0">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" placeholder="teacher@eqf.local">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="loginPassword">Mật khẩu</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••">
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <button id="loginBtn" class="btn-primary" type="button">Đăng nhập</button>
+    </div>
+  </section>
+
+  <div id="app" class="hidden">
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
+      <span class="who">Đang đăng nhập: <b id="whoName"></b></span>
+      <button id="logoutBtn" class="btn-ghost btn-small" type="button">Đăng xuất</button>
+    </div>
+
+    <section class="card">
+      <h2>Chọn kỳ thi đang REVIEW</h2>
+      <div id="pageMsg" class="msg" role="alert"></div>
+      <div class="row">
+        <div class="field" style="margin:0">
+          <label for="examSelect">Kỳ thi</label>
+          <select id="examSelect"><option value="">— Đang tải —</option></select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>&nbsp;</label>
+          <div class="actions">
+            <button id="reloadExamsBtn" class="btn-ghost" type="button">Làm mới</button>
+            <button id="reloadCandidatesBtn" class="btn-ghost" type="button" disabled>Tải candidates</button>
+          </div>
+        </div>
+      </div>
+      <div id="examMeta" class="exam-meta hidden"></div>
+      <div id="examActions" class="actions hidden">
+        <button id="selectBtn" class="btn-primary" type="button">Chọn câu theo điểm</button>
+        <button id="finalizeBtn" class="btn-danger" type="button">Chốt đề</button>
+        <span class="muted">Chốt đề chỉ thành công với người tạo kỳ thi và khi đã chọn đủ ma trận.</span>
+      </div>
+    </section>
+
+    <section id="candidateCard" class="card hidden">
+      <h2>Danh sách candidates</h2>
+      <div id="candidateEmpty" class="muted hidden">Kỳ thi này chưa có câu ứng viên.</div>
+      <div id="candidateBuckets"></div>
+    </section>
+
+    <section id="finalCard" class="card hidden">
+      <h2>Bộ đề cuối cùng</h2>
+      <div id="finalEmpty" class="muted hidden">Chưa có câu SELECTED.</div>
+      <div id="finalList" class="final-list"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+  const LOGIN_STORAGE_KEY = 'eqfCurrentUser';
+  const DIFFICULTIES = [
+    { value: 'RECOGNITION', label: 'Nhận biết', badge: 'b-rec' },
+    { value: 'COMPREHENSION', label: 'Thông hiểu', badge: 'b-com' },
+    { value: 'APPLICATION', label: 'Vận dụng', badge: 'b-app' },
+    { value: 'HIGH_APPLICATION', label: 'Vận dụng cao', badge: 'b-high' }
+  ];
+  const QUESTION_TYPES = {
+    MULTIPLE_CHOICE: 'Trắc nghiệm',
+    TRUE_FALSE: 'Đúng/Sai',
+    ESSAY: 'Tự luận'
+  };
+
+  let currentUserId = null;
+  let currentExam = null;
+  let currentExamId = null;
+  let reviewExams = [];
+
+  function showMsg(element, text, ok) {
+    element.textContent = text;
+    element.className = 'msg show ' + (ok ? 'ok' : 'err');
+  }
+
+  function hideMsg(element) {
+    element.textContent = '';
+    element.className = 'msg';
+  }
+
+  function userIdFromToken(data) {
+    if (data && Number.isInteger(Number(data.userId)) && Number(data.userId) > 0) {
+      return Number(data.userId);
+    }
+    if (!data || typeof data.token !== 'string') return null;
+    const parts = data.token.split('_');
+    const id = Number(parts[1]);
+    return parts[0] === 'token' && Number.isInteger(id) && id > 0 ? id : null;
+  }
+
+  function readSavedLogin() {
+    try {
+      return JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
+    } catch (error) {
+      sessionStorage.removeItem(LOGIN_STORAGE_KEY);
+      return null;
+    }
+  }
+
+  async function apiJson(url, options = {}) {
+    const response = await fetch(url, options);
+    let data = null;
+    try { data = await response.json(); } catch (error) { /* response without JSON */ }
+    if (!response.ok) {
+      throw new Error(data && data.message ? data.message : 'Yêu cầu thất bại (HTTP ' + response.status + ')');
+    }
+    return data;
+  }
+
+  async function openVotingBoard(data, messageElement) {
+    const userId = userIdFromToken(data);
+    if (!userId) {
+      sessionStorage.removeItem(LOGIN_STORAGE_KEY);
+      if (messageElement) showMsg(messageElement, 'Không đọc được userId từ token đăng nhập', false);
+      return false;
+    }
+
+    currentUserId = userId;
+    document.getElementById('whoName').textContent = (data.fullName || data.email || 'User') + ' (id ' + userId + ')';
+    document.getElementById('loginCard').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    await loadReviewExams();
+    return true;
+  }
+
+  async function doLogin() {
+    const button = document.getElementById('loginBtn');
+    const message = document.getElementById('loginMsg');
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    hideMsg(message);
+    if (!email || !password) {
+      showMsg(message, 'Vui lòng nhập email và mật khẩu', false);
+      return;
+    }
+
+    setButtonLoading(button, true, 'Đang đăng nhập...');
+    try {
+      const data = await apiJson('/api/login', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+      if (await openVotingBoard(data, message)) {
+        sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(data));
+      }
+    } catch (error) {
+      showMsg(message, error.message, false);
+    } finally {
+      setButtonLoading(button, false);
+    }
+  }
+
+  function doLogout() {
+    currentUserId = null;
+    sessionStorage.removeItem(LOGIN_STORAGE_KEY);
+    window.location.href = '/index.html';
+  }
+
+  async function loadReviewExams() {
+    const select = document.getElementById('examSelect');
+    const message = document.getElementById('pageMsg');
+    hideMsg(message);
+    select.innerHTML = '<option value="">— Đang tải —</option>';
+    resetExamView();
+    try {
+      reviewExams = await apiJson('/api/exams?status=REVIEW');
+      if (!reviewExams.length) {
+        select.innerHTML = '<option value="">— Chưa có kỳ thi REVIEW —</option>';
+        showMsg(message, 'Chưa có kỳ thi nào ở trạng thái REVIEW. Hãy tạo kỳ thi và rút candidates ở trang Kỳ thi.', true);
+        return;
+      }
+      select.innerHTML = '<option value="">— Chọn kỳ thi —</option>';
+      reviewExams.forEach(exam => {
+        const option = document.createElement('option');
+        option.value = exam.id;
+        option.textContent = '#' + exam.id + ' - ' + exam.title + ' (' + exam.subjectName + ')';
+        select.appendChild(option);
+      });
+    } catch (error) {
+      select.innerHTML = '<option value="">— Không tải được kỳ thi —</option>';
+      showMsg(message, error.message, false);
+    }
+  }
+
+  function resetExamView() {
+    currentExam = null;
+    currentExamId = null;
+    document.getElementById('reloadCandidatesBtn').disabled = true;
+    document.getElementById('examMeta').classList.add('hidden');
+    document.getElementById('examMeta').innerHTML = '';
+    document.getElementById('examActions').classList.add('hidden');
+    document.getElementById('candidateCard').classList.add('hidden');
+    document.getElementById('candidateBuckets').innerHTML = '';
+    document.getElementById('finalCard').classList.add('hidden');
+    document.getElementById('finalList').innerHTML = '';
+  }
+
+  async function chooseExam() {
+    const examId = Number(document.getElementById('examSelect').value);
+    hideMsg(document.getElementById('pageMsg'));
+    if (!examId) {
+      resetExamView();
+      return;
+    }
+    currentExamId = examId;
+    currentExam = reviewExams.find(exam => exam.id === examId) || await apiJson('/api/exams/' + examId);
+    renderExamMeta(currentExam);
+    await loadCandidates();
+  }
+
+  function renderExamMeta(exam) {
+    const meta = document.getElementById('examMeta');
+    meta.innerHTML =
+      metaItem('ID kỳ thi', '#' + exam.id) +
+      metaItem('Tên kỳ thi', escapeHtml(exam.title)) +
+      metaItem('Bộ môn', escapeHtml(exam.subjectName)) +
+      metaItem('Trạng thái', '<span class="badge b-candidate">' + escapeHtml(exam.status) + '</span>') +
+      metaItem('Người tạo', escapeHtml(exam.createdByName || '')) +
+      metaItem('Tổng số câu', exam.totalQuestions) +
+      metaItem('Số candidates', exam.candidateCount) +
+      metaItem('Ngày thi', exam.examDate || '—');
+    meta.classList.remove('hidden');
+    document.getElementById('examActions').classList.remove('hidden');
+    document.getElementById('reloadCandidatesBtn').disabled = false;
+  }
+
+  function metaItem(label, value) {
+    return '<div class="meta-item"><span class="meta-label">' + label + '</span><span class="meta-value">' + value + '</span></div>';
+  }
+
+  async function loadCandidates() {
+    if (!currentExamId) return;
+    const message = document.getElementById('pageMsg');
+    hideMsg(message);
+    try {
+      const candidates = await apiJson('/api/exams/' + currentExamId + '/candidates/voting?voterId=' + currentUserId);
+      renderCandidates(candidates);
+    } catch (error) {
+      showMsg(message, error.message, false);
+    }
+  }
+
+  function renderCandidates(candidates) {
+    const card = document.getElementById('candidateCard');
+    const empty = document.getElementById('candidateEmpty');
+    const buckets = document.getElementById('candidateBuckets');
+    buckets.innerHTML = '';
+    card.classList.remove('hidden');
+
+    if (!candidates.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    DIFFICULTIES.forEach(difficulty => {
+      const bucketItems = candidates.filter(candidate => candidate.difficulty === difficulty.value);
+      if (!bucketItems.length) return;
+      const required = requiredCount(difficulty.value);
+      const selected = bucketItems.filter(candidate => candidate.status === 'SELECTED').length;
+      const section = document.createElement('section');
+      section.className = 'bucket';
+      section.innerHTML =
+        '<div class="bucket-head"><h3><span class="badge ' + difficulty.badge + '">' + difficulty.label + '</span></h3>' +
+        '<span class="muted">Đã chọn ' + selected + ' / cần ' + required + '</span></div>' +
+        bucketItems.map(renderCandidate).join('');
+      buckets.appendChild(section);
+    });
+  }
+
+  function renderCandidate(candidate) {
+    const difficulty = difficultyInfo(candidate.difficulty);
+    const statusClass = candidate.status === 'SELECTED' ? 'b-selected' : (candidate.status === 'REJECTED' ? 'b-rejected' : 'b-candidate');
+    const commentOpen = candidate.myVoteValue === 0 || candidate.myVoteValue === -1;
+    return '<article class="candidate" data-candidate-id="' + candidate.id + '" data-pending-value="' + (candidate.myVoteValue == null ? '' : candidate.myVoteValue) + '">' +
+      '<div class="candidate-top">' +
+      '<div><p class="candidate-content"><b>#' + candidate.questionId + '</b> ' + escapeHtml(candidate.content) + '</p>' +
+      '<div class="candidate-meta">' +
+      '<span class="badge ' + difficulty.badge + '">' + difficulty.label + '</span>' +
+      '<span class="badge ' + statusClass + '">' + escapeHtml(candidate.status) + '</span>' +
+      '<span class="muted">' + escapeHtml(QUESTION_TYPES[candidate.questionType] || candidate.questionType) + '</span>' +
+      '<span class="muted">Tác giả: ' + escapeHtml(candidate.authorName || '') + '</span>' +
+      '</div></div>' +
+      '<div class="score"><span>Tổng điểm</span><strong>' + candidate.totalScore + '</strong></div>' +
+      '</div>' +
+      '<div class="vote-row">' +
+      voteButton(candidate, 1, '+1 Nên dùng') +
+      voteButton(candidate, 0, '0 Cần sửa') +
+      voteButton(candidate, -1, '-1 Loại') +
+      '</div>' +
+      '<div class="comment-box ' + (commentOpen ? '' : 'hidden') + '">' +
+      '<textarea class="vote-comment" placeholder="Lý do hoặc góp ý bắt buộc khi vote 0 / -1">' + escapeHtml(candidate.myVoteComment || '') + '</textarea>' +
+      '<button class="btn-primary btn-small submit-comment" type="button">Gửi góp ý</button>' +
+      '</div>' +
+      '</article>';
+  }
+
+  function voteButton(candidate, value, label) {
+    const disabled = currentExam && currentExam.status === 'FINALIZED' ? ' disabled' : '';
+    return '<button class="vote-btn btn-small' + (candidate.myVoteValue === value ? ' active' : '') +
+      '" type="button" data-value="' + value + '"' + disabled + '>' + label + '</button>';
+  }
+
+  async function handleCandidateClick(event) {
+    const voteButton = event.target.closest('.vote-btn');
+    const submitButton = event.target.closest('.submit-comment');
+    const card = event.target.closest('.candidate');
+    if (!card) return;
+
+    if (voteButton) {
+      const value = Number(voteButton.dataset.value);
+      card.dataset.pendingValue = String(value);
+      if (value === 1) {
+        await castVote(Number(card.dataset.candidateId), 1, null);
+      } else {
+        card.querySelector('.comment-box').classList.remove('hidden');
+        card.querySelector('.vote-comment').focus();
+      }
+    }
+
+    if (submitButton) {
+      const value = Number(card.dataset.pendingValue);
+      const comment = card.querySelector('.vote-comment').value.trim();
+      if (value !== 0 && value !== -1) {
+        showMsg(document.getElementById('pageMsg'), 'Hãy chọn vote 0 hoặc -1 trước khi gửi góp ý', false);
+        return;
+      }
+      if (!comment) {
+        showMsg(document.getElementById('pageMsg'), 'Vote 0 hoặc -1 bắt buộc phải có comment', false);
+        return;
+      }
+      await castVote(Number(card.dataset.candidateId), value, comment);
+    }
+  }
+
+  async function castVote(candidateId, value, comment) {
+    const message = document.getElementById('pageMsg');
+    hideMsg(message);
+    try {
+      await apiJson('/api/candidates/' + candidateId + '/vote', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ voterId: currentUserId, value, comment })
+      });
+      showMsg(message, 'Đã lưu vote cho candidate #' + candidateId, true);
+      await loadCandidates();
+    } catch (error) {
+      showMsg(message, error.message, false);
+    }
+  }
+
+  async function selectByScore() {
+    if (!currentExamId) return;
+    const button = document.getElementById('selectBtn');
+    const message = document.getElementById('pageMsg');
+    hideMsg(message);
+    setButtonLoading(button, true, 'Đang chọn...');
+    try {
+      await apiJson('/api/exams/' + currentExamId + '/select', { method: 'POST' });
+      showMsg(message, 'Đã chọn câu theo tổng điểm vote', true);
+      await loadCandidates();
+    } catch (error) {
+      showMsg(message, error.message, false);
+    } finally {
+      setButtonLoading(button, false);
+    }
+  }
+
+  async function finalizeExam() {
+    if (!currentExamId) return;
+    const button = document.getElementById('finalizeBtn');
+    const message = document.getElementById('pageMsg');
+    let completed = false;
+    hideMsg(message);
+    setButtonLoading(button, true, 'Đang chốt...');
+    try {
+      await apiJson('/api/exams/' + currentExamId + '/finalize', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ userId: currentUserId })
+      });
+      if (currentExam) {
+        currentExam.status = 'FINALIZED';
+        renderExamMeta(currentExam);
+      }
+      showMsg(message, 'Đã chốt đề. Bộ đề cuối cùng hiển thị bên dưới.', true);
+      completed = true;
+      await loadFinalExam();
+      await loadCandidates();
+    } catch (error) {
+      showMsg(message, error.message, false);
+    } finally {
+      setButtonLoading(button, false);
+      if (completed) {
+        document.getElementById('selectBtn').disabled = true;
+        document.getElementById('finalizeBtn').disabled = true;
+      }
+    }
+  }
+
+  async function loadFinalExam() {
+    const finalCard = document.getElementById('finalCard');
+    const finalList = document.getElementById('finalList');
+    const finalEmpty = document.getElementById('finalEmpty');
+    const finalCandidates = await apiJson('/api/exams/' + currentExamId + '/final');
+    finalList.innerHTML = '';
+    finalCard.classList.remove('hidden');
+    if (!finalCandidates.length) {
+      finalEmpty.classList.remove('hidden');
+      return;
+    }
+    finalEmpty.classList.add('hidden');
+    finalCandidates.forEach((candidate, index) => {
+      const difficulty = difficultyInfo(candidate.difficulty);
+      const item = document.createElement('div');
+      item.className = 'final-item';
+      item.innerHTML =
+        '<div class="final-index">' + (index + 1) + '</div>' +
+        '<div><div class="candidate-content"><b>#' + candidate.questionId + '</b> ' + escapeHtml(candidate.content) + '</div>' +
+        '<div class="candidate-meta"><span class="badge ' + difficulty.badge + '">' + difficulty.label + '</span>' +
+        '<span class="muted">' + escapeHtml(QUESTION_TYPES[candidate.questionType] || candidate.questionType) + '</span></div></div>';
+      finalList.appendChild(item);
+    });
+  }
+
+  function requiredCount(difficulty) {
+    if (!currentExam || !currentExam.matrix) return 0;
+    const row = currentExam.matrix.find(item => item.difficulty === difficulty);
+    return row ? row.requiredCount : 0;
+  }
+
+  function difficultyInfo(value) {
+    return DIFFICULTIES.find(item => item.value === value) || { value, label: value, badge: '' };
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+  }
+
+  function setButtonLoading(button, loading, loadingText) {
+    if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
+    button.disabled = loading;
+    button.textContent = loading ? loadingText : button.dataset.originalText;
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginPassword').addEventListener('keydown', event => {
+    if (event.key === 'Enter') doLogin();
+  });
+  document.getElementById('logoutBtn').addEventListener('click', doLogout);
+  document.getElementById('reloadExamsBtn').addEventListener('click', loadReviewExams);
+  document.getElementById('reloadCandidatesBtn').addEventListener('click', loadCandidates);
+  document.getElementById('examSelect').addEventListener('change', chooseExam);
+  document.getElementById('candidateBuckets').addEventListener('click', handleCandidateClick);
+  document.getElementById('selectBtn').addEventListener('click', selectByScore);
+  document.getElementById('finalizeBtn').addEventListener('click', finalizeExam);
+
+  const savedLogin = readSavedLogin();
+  if (savedLogin) {
+    openVotingBoard(savedLogin, document.getElementById('loginMsg')).catch(error => {
+      sessionStorage.removeItem(LOGIN_STORAGE_KEY);
+      showMsg(document.getElementById('loginMsg'), error.message, false);
+    });
+  }
+</script>
+</body>
+</html>

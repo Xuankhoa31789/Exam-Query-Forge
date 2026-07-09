@@ -11,10 +11,15 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ExamService {
@@ -26,19 +31,25 @@ public class ExamService {
     private final QuestionRepository questionRepository;
     private final SubjectRepository subjectRepository;
     private final UserRepository userRepository;
+    private final VoteRepository voteRepository;
+    private final QuestionUsageHistoryRepository questionUsageHistoryRepository;
 
     public ExamService(ExamRepository examRepository,
                        ExamMatrixRepository examMatrixRepository,
                        ExamCandidateRepository examCandidateRepository,
                        QuestionRepository questionRepository,
                        SubjectRepository subjectRepository,
-                       UserRepository userRepository) {
+                       UserRepository userRepository,
+                       VoteRepository voteRepository,
+                       QuestionUsageHistoryRepository questionUsageHistoryRepository) {
         this.examRepository = examRepository;
         this.examMatrixRepository = examMatrixRepository;
         this.examCandidateRepository = examCandidateRepository;
         this.questionRepository = questionRepository;
         this.subjectRepository = subjectRepository;
         this.userRepository = userRepository;
+        this.voteRepository = voteRepository;
+        this.questionUsageHistoryRepository = questionUsageHistoryRepository;
     }
 
     /** Tạo kỳ thi và toàn bộ ma trận trong cùng một transaction. */
@@ -79,6 +90,19 @@ public class ExamService {
         List<ExamMatrix> matrix = examMatrixRepository.findByExamIdOrderByIdAsc(examId);
         long candidateCount = examCandidateRepository.countByExamId(examId);
         return new ExamDetails(exam, matrix, candidateCount);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamDetails> listExams(ExamStatus status) {
+        List<Exam> exams = status == null
+                ? examRepository.findAllByOrderByCreatedAtDesc()
+                : examRepository.findByStatusOrderByCreatedAtDesc(status);
+        return exams.stream()
+                .map(exam -> new ExamDetails(
+                        exam,
+                        examMatrixRepository.findByExamIdOrderByIdAsc(exam.getId()),
+                        examCandidateRepository.countByExamId(exam.getId())))
+                .toList();
     }
 
     /**
@@ -142,9 +166,162 @@ public class ExamService {
         return examCandidateRepository.findByExamIdOrderByIdAsc(examId);
     }
 
+    @Transactional(readOnly = true)
+    public List<VotingCandidateView> listVotingCandidates(Long examId, Long voterId) {
+        if (voterId == null) {
+            throw new IllegalArgumentException("voterId la bat buoc");
+        }
+        if (!examRepository.existsById(examId)) {
+            throw new IllegalArgumentException("Khong tim thay ky thi id=" + examId);
+        }
+
+        Map<Long, Integer> scoreByCandidate = scoreByCandidate(examId);
+        Map<Long, Vote> myVotes = voteRepository.findByExamIdAndVoterId(examId, voterId).stream()
+                .collect(Collectors.toMap(vote -> vote.getCandidate().getId(), Function.identity()));
+
+        return examCandidateRepository.findByExamIdOrderByIdAsc(examId).stream()
+                .map(candidate -> new VotingCandidateView(
+                        candidate,
+                        scoreByCandidate.getOrDefault(candidate.getId(), 0),
+                        myVotes.get(candidate.getId())))
+                .toList();
+    }
+
+    @Transactional
+    public SelectionResult selectQuestions(Long examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay ky thi id=" + examId));
+        if (exam.getStatus() != ExamStatus.REVIEW) {
+            throw new IllegalArgumentException("Chi ky thi REVIEW moi duoc chon cau theo diem");
+        }
+
+        List<ExamMatrix> matrix = examMatrixRepository.findByExamIdOrderByIdAsc(examId);
+        if (matrix.isEmpty()) {
+            throw new IllegalArgumentException("Ky thi chua co ma tran");
+        }
+
+        List<ExamCandidate> candidates = examCandidateRepository.findByExamIdOrderByIdAsc(examId);
+        if (candidates.isEmpty()) {
+            throw new IllegalArgumentException("Ky thi chua co candidate");
+        }
+
+        Map<Long, Integer> scoreByCandidate = scoreByCandidate(examId);
+        Map<DifficultyLevel, List<ExamCandidate>> candidatesByDifficulty = candidates.stream()
+                .collect(Collectors.groupingBy(candidate -> candidate.getQuestion().getDifficulty()));
+        Set<Long> selectedIds = new HashSet<>();
+
+        for (ExamMatrix row : matrix) {
+            List<ExamCandidate> bucket = new ArrayList<>(
+                    candidatesByDifficulty.getOrDefault(row.getDifficulty(), List.of()));
+            if (bucket.size() < row.getRequiredCount()) {
+                throw new IllegalArgumentException(
+                        "Khong du candidate " + row.getDifficulty()
+                                + ": can " + row.getRequiredCount() + " nhung chi co " + bucket.size());
+            }
+            bucket.sort(Comparator
+                    .comparingInt((ExamCandidate candidate) ->
+                            scoreByCandidate.getOrDefault(candidate.getId(), 0))
+                    .reversed()
+                    .thenComparing(ExamCandidate::getId));
+            bucket.stream()
+                    .limit(row.getRequiredCount())
+                    .forEach(candidate -> selectedIds.add(candidate.getId()));
+        }
+
+        for (ExamCandidate candidate : candidates) {
+            candidate.setStatus(selectedIds.contains(candidate.getId())
+                    ? CandidateStatus.SELECTED
+                    : CandidateStatus.REJECTED);
+        }
+
+        List<ExamCandidate> saved = examCandidateRepository.saveAll(candidates);
+        return new SelectionResult(
+                exam,
+                saved.stream()
+                        .filter(candidate -> candidate.getStatus() == CandidateStatus.SELECTED)
+                        .toList()
+        );
+    }
+
+    @Transactional
+    public FinalExamResult finalizeExam(Long examId, Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId la bat buoc");
+        }
+        Exam exam = findDetailedExam(examId);
+        if (!exam.getCreatedBy().getId().equals(userId)) {
+            throw new IllegalArgumentException("Chi nguoi tao ky thi moi duoc chot de");
+        }
+        if (exam.getStatus() != ExamStatus.REVIEW) {
+            throw new IllegalArgumentException("Chi ky thi REVIEW moi duoc chot de");
+        }
+
+        List<ExamCandidate> selected = examCandidateRepository.findByExamIdAndStatusOrderByIdAsc(
+                examId, CandidateStatus.SELECTED);
+        validateSelectedMatrix(examId, selected);
+
+        LocalDateTime usedAt = LocalDateTime.now();
+        List<QuestionUsageHistory> historyRows = selected.stream()
+                .filter(candidate -> !questionUsageHistoryRepository.existsByQuestionIdAndExamId(
+                        candidate.getQuestion().getId(), examId))
+                .map(candidate -> new QuestionUsageHistory(candidate.getQuestion(), exam, usedAt))
+                .toList();
+        questionUsageHistoryRepository.saveAll(historyRows);
+
+        exam.setStatus(ExamStatus.FINALIZED);
+        examRepository.save(exam);
+        return new FinalExamResult(exam, selected);
+    }
+
+    @Transactional(readOnly = true)
+    public FinalExamResult getFinalExam(Long examId) {
+        Exam exam = findDetailedExam(examId);
+        if (exam.getStatus() != ExamStatus.FINALIZED) {
+            throw new IllegalArgumentException("Chi xem duoc de cuoi sau khi ky thi da FINALIZED");
+        }
+        return new FinalExamResult(
+                exam,
+                examCandidateRepository.findByExamIdAndStatusOrderByIdAsc(examId, CandidateStatus.SELECTED)
+        );
+    }
+
     private Exam findDetailedExam(Long examId) {
         return examRepository.findDetailedById(examId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy kỳ thi id=" + examId));
+    }
+
+    private Map<Long, Integer> scoreByCandidate(Long examId) {
+        return voteRepository.totalScoresByExamId(examId).stream()
+                .collect(Collectors.toMap(
+                        VoteRepository.CandidateScore::getCandidateId,
+                        score -> score.getTotalScore().intValue()
+                ));
+    }
+
+    private void validateSelectedMatrix(Long examId, List<ExamCandidate> selected) {
+        List<ExamMatrix> matrix = examMatrixRepository.findByExamIdOrderByIdAsc(examId);
+        if (matrix.isEmpty()) {
+            throw new IllegalArgumentException("Ky thi chua co ma tran");
+        }
+
+        Map<DifficultyLevel, Long> selectedByDifficulty = selected.stream()
+                .collect(Collectors.groupingBy(
+                        candidate -> candidate.getQuestion().getDifficulty(),
+                        Collectors.counting()));
+
+        int requiredTotal = 0;
+        for (ExamMatrix row : matrix) {
+            requiredTotal += row.getRequiredCount();
+            long selectedCount = selectedByDifficulty.getOrDefault(row.getDifficulty(), 0L);
+            if (selectedCount != row.getRequiredCount()) {
+                throw new IllegalArgumentException(
+                        "Chua select du " + row.getDifficulty()
+                                + ": can " + row.getRequiredCount() + " nhung dang co " + selectedCount);
+            }
+        }
+        if (selected.size() != requiredTotal) {
+            throw new IllegalArgumentException("So cau SELECTED khong khop tong ma tran");
+        }
     }
 
     private void validateCreateRequest(CreateExamRequest request) {
@@ -222,4 +399,10 @@ public class ExamService {
                                       List<ExamCandidate> candidates,
                                       Map<DifficultyLevel, Integer> countByDifficulty,
                                       int cooldownDays) {}
+
+    public record VotingCandidateView(ExamCandidate candidate, int totalScore, Vote myVote) {}
+
+    public record SelectionResult(Exam exam, List<ExamCandidate> selectedCandidates) {}
+
+    public record FinalExamResult(Exam exam, List<ExamCandidate> selectedCandidates) {}
 }

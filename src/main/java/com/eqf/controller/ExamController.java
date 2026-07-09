@@ -4,6 +4,9 @@ import com.eqf.dto.CandidatePullResponse;
 import com.eqf.dto.CreateExamRequest;
 import com.eqf.dto.ExamCandidateResponse;
 import com.eqf.dto.ExamResponse;
+import com.eqf.dto.FinalizeExamRequest;
+import com.eqf.dto.VotingCandidateResponse;
+import com.eqf.model.ExamStatus;
 import com.eqf.service.ExamService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +20,14 @@ public class ExamController {
 
     public ExamController(ExamService examService) {
         this.examService = examService;
+    }
+
+    /** Liệt kê kỳ thi, có thể lọc theo trạng thái. */
+    @GetMapping
+    public List<ExamResponse> list(@RequestParam(required = false) ExamStatus status) {
+        return examService.listExams(status).stream()
+                .map(details -> ExamResponse.from(details.exam(), details.matrix(), details.candidateCount()))
+                .toList();
     }
 
     /** Tạo kỳ thi kèm toàn bộ ma trận difficulty/requiredCount. */
@@ -52,6 +63,37 @@ public class ExamController {
     @GetMapping("/{id}/candidates")
     public List<ExamCandidateResponse> listCandidates(@PathVariable Long id) {
         return examService.listCandidates(id).stream()
+                .map(ExamCandidateResponse::from)
+                .toList();
+    }
+
+    @GetMapping("/{id}/candidates/voting")
+    public List<VotingCandidateResponse> listVotingCandidates(@PathVariable Long id,
+                                                              @RequestParam Long voterId) {
+        return examService.listVotingCandidates(id, voterId).stream()
+                .map(view -> VotingCandidateResponse.from(
+                        view.candidate(), view.totalScore(), view.myVote()))
+                .toList();
+    }
+
+    @PostMapping("/{id}/select")
+    public List<ExamCandidateResponse> selectQuestions(@PathVariable Long id) {
+        return examService.selectQuestions(id).selectedCandidates().stream()
+                .map(ExamCandidateResponse::from)
+                .toList();
+    }
+
+    @PostMapping("/{id}/finalize")
+    public List<ExamCandidateResponse> finalizeExam(@PathVariable Long id,
+                                                    @RequestBody FinalizeExamRequest request) {
+        return examService.finalizeExam(id, request.getUserId()).selectedCandidates().stream()
+                .map(ExamCandidateResponse::from)
+                .toList();
+    }
+
+    @GetMapping("/{id}/final")
+    public List<ExamCandidateResponse> getFinalExam(@PathVariable Long id) {
+        return examService.getFinalExam(id).selectedCandidates().stream()
                 .map(ExamCandidateResponse::from)
                 .toList();
     }

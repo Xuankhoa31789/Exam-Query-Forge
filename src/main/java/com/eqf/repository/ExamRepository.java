@@ -13,6 +13,12 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     List<Exam> findBySubjectIdOrderByCreatedAtDesc(Long subjectId);
 
     @EntityGraph(attributePaths = {"subject", "createdBy"})
+    List<Exam> findByStatusOrderByCreatedAtDesc(com.eqf.model.ExamStatus status);
+
+    @EntityGraph(attributePaths = {"subject", "createdBy"})
+    List<Exam> findAllByOrderByCreatedAtDesc();
+
+    @EntityGraph(attributePaths = {"subject", "createdBy"})
     @Query("SELECT e FROM Exam e WHERE e.id = :id")
     Optional<Exam> findDetailedById(@Param("id") Long id);
 }

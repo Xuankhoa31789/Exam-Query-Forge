@@ -98,6 +98,46 @@ class ExamServiceTest {
                 .hasMessageContaining("totalQuestions");
     }
 
+    @Test
+    void selectsTopVotedCandidatesPerDifficultyBucket() {
+        Subject subject = entityManager.persist(new Subject("Select service test"));
+        User creator = verifiedUser(subject, "select-creator@eqf.local", UserRole.DEPARTMENT_HEAD);
+        User voterOne = verifiedUser(subject, "select-voter-1@eqf.local", UserRole.TEACHER);
+        User voterTwo = verifiedUser(subject, "select-voter-2@eqf.local", UserRole.TEACHER);
+
+        Question lowScore = entityManager.persist(question(subject, creator, "Low score"));
+        Question highScore = entityManager.persist(question(subject, creator, "High score"));
+        Question middleScore = entityManager.persist(question(subject, creator, "Middle score"));
+
+        Exam exam = new Exam();
+        exam.setTitle("Select exam");
+        exam.setSubject(subject);
+        exam.setTotalQuestions(2);
+        exam.setCreatedBy(creator);
+        exam.setStatus(ExamStatus.REVIEW);
+        exam = entityManager.persist(exam);
+        entityManager.persist(new ExamMatrix(exam, DifficultyLevel.RECOGNITION, 2));
+
+        ExamCandidate lowCandidate = entityManager.persist(new ExamCandidate(exam, lowScore));
+        ExamCandidate highCandidate = entityManager.persist(new ExamCandidate(exam, highScore));
+        ExamCandidate middleCandidate = entityManager.persist(new ExamCandidate(exam, middleScore));
+
+        entityManager.persist(new Vote(lowCandidate, voterOne, (short) -1, "Khong phu hop"));
+        entityManager.persist(new Vote(highCandidate, voterOne, (short) 1, null));
+        entityManager.persist(new Vote(highCandidate, voterTwo, (short) 1, null));
+        entityManager.persist(new Vote(middleCandidate, voterOne, (short) 1, null));
+        entityManager.flush();
+
+        ExamService.SelectionResult result = examService.selectQuestions(exam.getId());
+
+        assertThat(result.selectedCandidates())
+                .extracting(candidate -> candidate.getQuestion().getContent())
+                .containsExactly("High score", "Middle score");
+        assertThat(lowCandidate.getStatus()).isEqualTo(CandidateStatus.REJECTED);
+        assertThat(highCandidate.getStatus()).isEqualTo(CandidateStatus.SELECTED);
+        assertThat(middleCandidate.getStatus()).isEqualTo(CandidateStatus.SELECTED);
+    }
+
     private CreateExamRequest validRequest(Long subjectId, Long createdById) {
         CreateExamRequest request = new CreateExamRequest();
         request.setTitle("Đề giữa kỳ");
@@ -122,5 +162,13 @@ class ExamServiceTest {
         question.setDifficultySource(DifficultySource.AUTHOR);
         question.setStatus(QuestionStatus.IN_POOL);
         return question;
+    }
+
+    private User verifiedUser(Subject subject, String email, UserRole role) {
+        User user = new User(email, email, "hash");
+        user.setRole(role);
+        user.setSubject(subject);
+        user.setVerifyStatus(VerifyStatus.VERIFIED);
+        return entityManager.persist(user);
     }
 }
