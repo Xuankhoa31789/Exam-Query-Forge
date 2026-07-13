@@ -25,8 +25,9 @@ replace the traditional random-draw ("bốc thăm") method with a quality-contro
 - Spring Data JPA + Hibernate
 - **Dev DB: H2 (file-based)** at `./data/exam-query-forge`; console at `/h2-console`
   (JDBC URL `jdbc:h2:file:./data/exam-query-forge`, user `sa`, no password).
-  **Prod DB: PostgreSQL** later — entities are DB-agnostic, switching is config-only.
-- Spring Security (BCrypt hashing, role-based access)
+  **Prod DB: PostgreSQL** via Spring profile `prod` (`application-prod.properties`);
+  entities are DB-agnostic, no code changes needed. See "Deploy" section below.
+- Spring Security + **JWT (JJWT 0.12, HS256)**: stateless Bearer tokens, BCrypt hashing.
 - Frontend: static HTML/CSS/JS in `src/main/resources/static/`
 
 ## Build & run
@@ -72,13 +73,60 @@ runs, then move on. Do NOT build all entities, then all repos.
 - [x] Login/logout flow fixed: login stored in `sessionStorage('eqfCurrentUser')`,
       shared across index.html, questions.html, and exams.html; logout redirects to `/index.html`.
 - [x] **Slice 4 — Exams + matrix + candidate pulling.** Backend REST + `exams.html` UI complete.
-- [ ] **Slice 5 — Voting + selection + finalize.  ← NEXT**
-- [ ] (Later) real JWT/session auth + role enforcement; deploy on Postgres.
+- [x] **Slice 5 — Voting + selection + finalize.** `voting.html`, VoteService,
+      select-by-score + finalize (only the exam creator), usage history for cooldown.
+- [x] **Slice 6 — Real JWT auth.** Package `com.eqf.security` (JwtService, JwtAuthFilter,
+      AuthenticatedUser). Login returns a real JWT plus `userId`, `fullName`, `role`.
+      Every `/api/**` except login/register/health requires `Authorization: Bearer <token>`
+      (401 otherwise). authorId/createdById/voterId come from the JWT, NOT request bodies.
+      Frontend: shared `static/auth.js` — `apiFetch()` attaches the header; 401 → login page.
+- [x] **Slice 7 — Production PostgreSQL.** postgresql driver (runtime),
+      `application-prod.properties` (all secrets from env), multi-stage `Dockerfile`,
+      `DevDataInitializer` restricted to profile default/dev.
+- [ ] (Later) role enforcement per endpoint (e.g. only DEPARTMENT_HEAD creates/finalizes
+      exams); audit_log slice; real LLM DifficultyAnalyzer (pending API key).
+
+## Deploy (Slice 7)
+
+Prod = Spring profile `prod`. Required env vars:
+
+| Env var | Meaning |
+|---|---|
+| `SPRING_PROFILES_ACTIVE` | `prod` |
+| `DATABASE_URL` | JDBC URL: `jdbc:postgresql://host:5432/dbname`. If your platform only provides `postgres://user:pass@host/db`, set `SPRING_DATASOURCE_URL` + `SPRING_DATASOURCE_USERNAME` + `SPRING_DATASOURCE_PASSWORD` instead. |
+| `EQF_JWT_SECRET` | JWT signing secret, **>= 32 bytes** (app refuses to start otherwise) |
+| `PORT` | optional; Render sets it automatically (default 8080) |
+
+Run prod locally against a local Postgres (PowerShell):
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE = 'prod'
+$env:DATABASE_URL = 'jdbc:postgresql://localhost:5432/eqf'
+$env:SPRING_DATASOURCE_USERNAME = 'postgres'
+$env:SPRING_DATASOURCE_PASSWORD = '<your-password>'
+$env:EQF_JWT_SECRET = 'some-long-random-secret-at-least-32-bytes!!'
+mvn spring-boot:run
+```
+
+Docker (what Render builds from the `Dockerfile`):
+
+```bash
+docker build -t eqf .
+docker run -p 8080:8080 -e DATABASE_URL=... -e EQF_JWT_SECRET=... eqf
+```
+
+Notes: prod uses `ddl-auto=update` (Hibernate creates/updates tables on first boot),
+H2 console is disabled, and `DevDataInitializer` does NOT run (no seed data — register
+the first user via `/index.html`, then set `verify_status='VERIFIED'` in the DB).
 
 ## Gotchas learned the hard way (READ THESE)
 
-- `/api/login` returns a `token` string shaped `token_<userId>_<timestamp>` — there is
-  NO `userId` field. The frontend derives the id via `token.split('_')[1]`.
+- `/api/login` returns a **real JWT** plus explicit `userId`, `fullName`, `role` fields.
+  Read the id from `data.userId` (helper `eqfUserId()` in `auth.js`). The old
+  `token.split('_')[1]` trick is DEAD — never parse the token on the frontend.
+- All frontend API calls must go through `apiFetch()` (shared `static/auth.js`, loaded
+  before each page's inline script) so the Bearer header is attached; a plain `fetch()`
+  to a protected `/api/**` endpoint gets 401 and bounces the user to the login page.
 - When EDITING a file, **preserve all existing features**. Do NOT rewrite a whole file
   and silently drop unrelated code. (The AI Tab feature in questions.html was lost once
   this way.) Make targeted edits; after editing, verify nothing else disappeared.

@@ -77,9 +77,11 @@ Slice order:
 
 - [x] Project renamed to `com.eqf`, artifact `exam-query-forge`
 - [x] schema.sql present (move to `resources/db/schema.postgres.sql`, keep as reference)
-- [ ] **Slice 1 — Auth & User: NOT done.** Controllers still use the old
-      in-memory `UserRegistry` with **plaintext passwords** and username-based login.
-      This must be replaced with DB-backed, BCrypt-hashed, email-based auth.
+- [x] Slices 1–5 done (auth, question bank, AI stub, exams+matrix, voting+finalize).
+- [x] Slice 6 — real JWT auth (`com.eqf.security`, Bearer tokens, shared `static/auth.js`).
+- [x] Slice 7 — production PostgreSQL: profile `prod` (`application-prod.properties`,
+      env-driven), multi-stage `Dockerfile`, DevDataInitializer only on default/dev.
+- **AGENTS.md is the up-to-date source of truth for status, gotchas, and deploy steps.**
 
 ## How to work with me here
 

@@ -7,14 +7,16 @@ import com.eqf.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Seed dữ liệu mẫu cho môi trường dev (chỉ chạy khi bảng subjects còn trống).
  * Giúp test ngay: đã có bộ môn, chương, và 1 giáo viên đã xác minh.
- * Khi lên production nên tắt/loại bỏ file này.
+ * Chỉ hoạt động ở profile default/dev — không bao giờ chạy trên prod.
  */
 @Configuration
+@Profile({"default", "dev"})
 public class DevDataInitializer {
 
     @Bean
