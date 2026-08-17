@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Query Forge — Trang chủ</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div id="appShell"></div>
+
+<div class="wrap">
+  <div id="pageHead"></div>
+
+  <div id="pageMsg" class="msg err" role="alert"></div>
+
+  <div id="verifyBanner" class="verify-banner hidden"></div>
+
+  <div class="tile-grid">
+    <a class="tile" href="/questions">
+      <div class="tile-icon" aria-hidden="true">📚</div>
+      <h3>Ngân hàng câu hỏi</h3>
+      <p>Đóng góp câu hỏi vào kho chung, gắn thẻ bộ môn — chương — độ khó, và xem toàn bộ pool hiện có.</p>
+    </a>
+    <a class="tile" href="/exams">
+      <div class="tile-icon" aria-hidden="true">🧮</div>
+      <h3>Kỳ thi &amp; ma trận đề</h3>
+      <p>Tạo kỳ thi, khai báo số câu theo từng mức độ, rồi rút danh sách ứng viên từ ngân hàng câu hỏi.</p>
+    </a>
+    <a class="tile" href="/voting">
+      <div class="tile-icon" aria-hidden="true">🗳️</div>
+      <h3>Bình chọn &amp; chốt đề</h3>
+      <p>Chấm điểm câu hỏi ứng viên, chọn câu điểm cao nhất cho đủ ma trận, và chốt đề cuối cùng.</p>
+    </a>
+  </div>
+
+  <section class="card">
+    <h2>Tổng quan</h2>
+    <div class="stat-grid">
+      <div class="stat"><span>Câu hỏi trong pool</span><strong id="statQuestions">—</strong></div>
+      <div class="stat"><span>Bộ môn</span><strong id="statSubjects">—</strong></div>
+      <div class="stat"><span>Kỳ thi bạn tạo</span><strong id="statExams">—</strong></div>
+    </div>
+    <p class="muted" style="margin-top:14px">
+      Số liệu tính trên những gì tài khoản của bạn được phép xem.
+    </p>
+  </section>
+</div>
+
+<script src="/auth.js"></script>
+<script src="/shell.js"></script>
+<script>
+  const login = eqfRequireLogin();
+
+  if (login) {
+    eqfRenderShell({
+      title: 'Xin chào, ' + (login.fullName || login.email) + '!',
+      subtitle: 'Chọn một khu vực để bắt đầu.',
+      active: 'home'
+    });
+
+    renderVerifyBanner();
+    loadStats();
+  }
+
+  function renderVerifyBanner() {
+    // Phiên đăng nhập cũ (trước khi /api/login trả verifyStatus) thì bỏ qua, không đoán.
+    if (!login.verifyStatus) return;
+    const banner = document.getElementById('verifyBanner');
+    const verified = login.verifyStatus === 'VERIFIED';
+    banner.className = 'verify-banner ' + (verified ? 'verified' : 'pending');
+    banner.textContent = verified
+      ? '✓ Tài khoản đã được xác minh — bạn có thể đóng góp câu hỏi.'
+      : '⏳ Tài khoản chưa được xác minh. Bạn xem được mọi thứ nhưng chưa thể đóng góp câu hỏi.';
+  }
+
+  async function setStat(id, url, transform) {
+    const el = document.getElementById(id);
+    try {
+      const res = await apiFetch(url);
+      if (!res.ok) { el.textContent = '—'; return; }
+      el.textContent = transform(await res.json());
+    } catch (error) {
+      el.textContent = '—';
+    }
+  }
+
+  function loadStats() {
+    setStat('statQuestions', '/api/questions', (list) => list.length);
+    setStat('statSubjects', '/api/subjects', (list) => list.length);
+    // /api/exams không lọc theo người tạo — lọc phía client bằng createdById trong phản hồi.
+    const myId = eqfUserId(login);
+    setStat('statExams', '/api/exams', (list) => list.filter((e) => e.createdById === myId).length);
+  }
+</script>
+</body>
+</html>

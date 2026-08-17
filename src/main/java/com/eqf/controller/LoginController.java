@@ -45,6 +45,9 @@ public class LoginController {
                     "fullName", user.getFullName(),
                     "userId", user.getId(),
                     "role", user.getRole().name(),
+                    // Frontend dùng để nhắc "tài khoản chưa được xác minh" (home.html).
+                    // Quyền thật vẫn do server kiểm, không tin giá trị này.
+                    "verifyStatus", user.getVerifyStatus().name(),
                     "token", jwtService.generateToken(user)
             );
         } catch (IllegalArgumentException e) {

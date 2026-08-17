@@ -31,7 +31,7 @@ async function apiFetch(url, options = {}) {
   const response = await fetch(url, Object.assign({}, options, { headers }));
   if (response.status === 401) {
     sessionStorage.removeItem(EQF_LOGIN_KEY);
-    window.location.href = '/index.html';
+    window.location.href = '/';
     throw new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
   }
   return response;

@@ -36,8 +36,17 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/index.html", "/questions.html", "/exams.html", "/voting.html",
-                        "/styles.css", "/app.js", "/auth.js", "/favicon.ico", "/data/**").permitAll()
+                // Trang tĩnh + URL sạch tương ứng (xem WebConfig). Việc chặn người chưa
+                // đăng nhập do phía client lo (shell.js → eqfRequireLogin); dữ liệu thật
+                // vẫn được bảo vệ ở tầng /api/**.
+                .requestMatchers("/", "/login", "/home", "/questions", "/exams", "/voting").permitAll()
+                .requestMatchers("/index.html", "/home.html", "/questions.html", "/exams.html", "/voting.html")
+                        .permitAll()
+                .requestMatchers("/styles.css", "/app.js", "/auth.js", "/shell.js",
+                        "/favicon.ico").permitAll()
+                // Không tìm thấy tài nguyên -> Spring forward sang /error. Nếu /error cũng
+                // đòi xác thực thì mọi 404 sẽ hiện thành 401, rất khó debug.
+                .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/login", "/api/register", "/api/dashboard/health").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()

@@ -33,7 +33,9 @@ replace the traditional random-draw ("bốc thăm") method with a quality-contro
 ## Build & run
 
 - Run: `mvn spring-boot:run`  → app at `http://localhost:8080`
-- Login/register page: `/index.html`. Question bank: `/questions.html`.
+- Pages: `/` (login) → `/home` → `/questions`, `/exams`, `/voting`.
+- Dev login: `teacher@eqf.local` / `password123` (only if `DevDataInitializer` seeded —
+  it skips when the subjects table is already populated).
 - **Restart the app after adding/renaming any Java file** — new endpoints won't exist
   until you restart (a 404 on a new endpoint usually means "you forgot to restart").
 
@@ -46,6 +48,21 @@ replace the traditional random-draw ("bốc thăm") method with a quality-contro
 - Passwords: **never plaintext, always BCrypt.** Never log raw passwords.
 - `src/main/resources/db/schema.postgres.sql` is a **reference only**. It is
   Postgres-specific and must NOT run on H2. Keep `spring.sql.init.mode=never`.
+- **The nav bar lives in ONE place: `static/shell.js`.** Pages after login only carry
+  `<div id="appShell"></div>` + `<div id="pageHead"></div>` and call
+  `eqfRenderShell({ title, active })`. To add a nav entry, edit `EQF_NAV` in shell.js —
+  never re-type the header inside a page. Guard every logged-in page with
+  `eqfRequireLogin()` (redirects to `/` when there is no valid session); no page has
+  its own login form any more.
+- **Clean URLs** are declared in `config/WebConfig.java` (`/home` → `/home.html`, etc.).
+  Link to `/questions`, not `/questions.html`. A new page needs THREE edits: the file,
+  a `WebConfig` view controller, and a `permitAll` entry in `SecurityConfig`.
+- **Frontend CSS lives in ONE place: `static/styles.css`.** All pages link it;
+  none of them has a `<style>` block any more. Never hard-code a colour in a page —
+  use the design tokens (`--bg`, `--card`, `--border`, `--ink`, `--muted`, `--accent`,
+  `--green/--red/--amber/--violet` + their `-bg`/`-border` variants). Dark mode works
+  automatically via `prefers-color-scheme`, so an untokenised colour WILL look broken
+  on a dark-themed OS. New components go in the section of `styles.css` for their page.
 
 ## Data model (13 tables; see schema.postgres.sql)
 
@@ -83,6 +100,17 @@ runs, then move on. Do NOT build all entities, then all repos.
 - [x] **Slice 7 — Production PostgreSQL.** postgresql driver (runtime),
       `application-prod.properties` (all secrets from env), multi-stage `Dockerfile`,
       `DevDataInitializer` restricted to profile default/dev.
+- [x] **Slice 8 — UI pass.** Shared design system in `static/styles.css` (tokens + dark
+      mode); the inline `<style>` blocks of questions/exams/voting were removed and
+      those pages now link it. `index.html` rebuilt as a split-screen login (brand panel
+      with the 4-step pipeline + live health dot on the left, form on the right), in
+      Vietnamese, with show/hide password and a resume-session notice. `app.js` rewritten
+      for the new DOM. Fixed a stray `}` in the old `styles.css` that had been killing
+      every rule after it, including the responsive media query.
+- [x] **Slice 9 — App shell.** `static/shell.js` (nav dùng chung + `eqfRequireLogin`),
+      new `home.html` landing page (tiles + live stats), clean URLs via `WebConfig`.
+      The legacy per-page login forms in questions/exams/voting were deleted — those
+      pages now redirect to `/` when there is no session. Login lands on `/home`.
 - [ ] (Later) role enforcement per endpoint (e.g. only DEPARTMENT_HEAD creates/finalizes
       exams); audit_log slice; real LLM DifficultyAnalyzer (pending API key).
 
@@ -132,6 +160,15 @@ the first user via `/index.html`, then set `verify_status='VERIFIED'` in the DB)
   this way.) Make targeted edits; after editing, verify nothing else disappeared.
 - H2 resets/append behavior: dev data is seeded by `DevDataInitializer` only when the
   subjects table is empty.
+- **Every static path must be listed in `SecurityConfig`.** A new page/script that is
+  not in a `permitAll` matcher gets 401 — including from the browser, so the page
+  simply never loads. Symptom: a brand-new page 401s while the old ones work.
+- **An unknown URL returns 401, not 404**, because `anyRequest().authenticated()` denies
+  it before routing. That is intended (it does not leak which paths exist) but it does
+  mean a typo'd URL looks like an auth failure. `/error` is `permitAll` so that a
+  *permitted* path with no file behind it returns a real 404 (e.g. `/favicon.ico`).
+- The login response carries `verifyStatus` for the banner on `home.html`. It is a UI
+  hint only — never gate a real permission on it, the server owns that check.
 
 ## Prompt patterns that work well here
 
