@@ -111,6 +111,14 @@ runs, then move on. Do NOT build all entities, then all repos.
       new `home.html` landing page (tiles + live stats), clean URLs via `WebConfig`.
       The legacy per-page login forms in questions/exams/voting were deleted — those
       pages now redirect to `/` when there is no session. Login lands on `/home`.
+- [x] **Slice 10 — Authorization + self-bootstrap.** `getFinalExam`, `selectQuestions` and
+      `pullCandidates` now require the exam creator (or ADMIN) — before this, ANY logged-in
+      account could read any finalized exam, which broke the product's core promise.
+      New `ForbiddenException` → HTTP 403 (previously everything was 400). New
+      `POST /api/subjects` (ADMIN/DEPARTMENT_HEAD) and `AdminController`
+      (`/api/admin/users`, `.../verify-status`, `.../role`) plus `admin.html`, so a fresh
+      deployment no longer needs manual SQL. **The first registered user on an empty
+      users table becomes ADMIN + VERIFIED** — that is the bootstrap.
 - [ ] (Later) role enforcement per endpoint (e.g. only DEPARTMENT_HEAD creates/finalizes
       exams); audit_log slice; real LLM DifficultyAnalyzer (pending API key).
 
@@ -144,8 +152,14 @@ docker run -p 8080:8080 -e DATABASE_URL=... -e EQF_JWT_SECRET=... eqf
 ```
 
 Notes: prod uses `ddl-auto=update` (Hibernate creates/updates tables on first boot),
-H2 console is disabled, and `DevDataInitializer` does NOT run (no seed data — register
-the first user via `/index.html`, then set `verify_status='VERIFIED'` in the DB).
+H2 console is disabled, and `DevDataInitializer` does NOT run — so the database starts
+completely empty. First run, in order:
+
+1. Register at `/` — **the first account becomes ADMIN + VERIFIED automatically**.
+2. Log in, open `/admin`, create the subjects (nothing works without at least one).
+3. As people register, approve them from the same page (`Duyệt`) and set roles.
+
+No SQL console needed at any point. Every later registration is TEACHER + PENDING.
 
 ## Gotchas learned the hard way (READ THESE)
 
@@ -167,6 +181,12 @@ the first user via `/index.html`, then set `verify_status='VERIFIED'` in the DB)
   it before routing. That is intended (it does not leak which paths exist) but it does
   mean a typo'd URL looks like an auth failure. `/error` is `permitAll` so that a
   *permitted* path with no file behind it returns a real 404 (e.g. `/favicon.ico`).
+- **Authorization lives in the service, not the controller.** `ExamService.requireExamManager`
+  gates anything that reveals or changes the final exam. If you add an endpoint that touches
+  `ExamCandidate` with status SELECTED, gate it too — otherwise you re-open the hole where
+  any registered account could read a finalized exam.
+- Throw `ForbiddenException` (403) for "logged in but not allowed", `IllegalArgumentException`
+  (400) for bad input. 401 is only for missing/broken tokens and comes from Spring Security.
 - The login response carries `verifyStatus` for the banner on `home.html`. It is a UI
   hint only — never gate a real permission on it, the server owns that check.
 

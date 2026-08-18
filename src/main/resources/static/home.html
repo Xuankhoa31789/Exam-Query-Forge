@@ -4,47 +4,102 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exam Query Forge — Trang chủ</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/vendor/tabler.min.css">
+  <script>
+    // Tabler đổi giao diện qua data-bs-theme; bám theo cài đặt của hệ điều hành.
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
+    }
+  </script>
 </head>
 <body>
-<div id="appShell"></div>
+<div class="page">
+  <div id="appShell"></div>
 
-<div class="wrap">
-  <div id="pageHead"></div>
+  <div class="page-wrapper">
+    <div id="pageHead"></div>
 
-  <div id="pageMsg" class="msg err" role="alert"></div>
+    <div class="page-body">
+      <div class="container-xl">
 
-  <div id="verifyBanner" class="verify-banner hidden"></div>
+        <div id="verifyBanner" class="d-none"></div>
 
-  <div class="tile-grid">
-    <a class="tile" href="/questions">
-      <div class="tile-icon" aria-hidden="true">📚</div>
-      <h3>Ngân hàng câu hỏi</h3>
-      <p>Đóng góp câu hỏi vào kho chung, gắn thẻ bộ môn — chương — độ khó, và xem toàn bộ pool hiện có.</p>
-    </a>
-    <a class="tile" href="/exams">
-      <div class="tile-icon" aria-hidden="true">🧮</div>
-      <h3>Kỳ thi &amp; ma trận đề</h3>
-      <p>Tạo kỳ thi, khai báo số câu theo từng mức độ, rồi rút danh sách ứng viên từ ngân hàng câu hỏi.</p>
-    </a>
-    <a class="tile" href="/voting">
-      <div class="tile-icon" aria-hidden="true">🗳️</div>
-      <h3>Bình chọn &amp; chốt đề</h3>
-      <p>Chấm điểm câu hỏi ứng viên, chọn câu điểm cao nhất cho đủ ma trận, và chốt đề cuối cùng.</p>
-    </a>
-  </div>
+        <div class="row row-cards mb-3">
+          <div class="col-sm-6 col-lg-4">
+            <a href="/questions" class="card card-link card-link-pop h-100">
+              <div class="card-body">
+                <span class="avatar avatar-lg bg-blue-lt mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 5a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -14" /><path d="M9 5a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -14" /><path d="M5 8h4" /><path d="M9 16h4" /><path d="M13.803 4.56l2.184 -.53c.562 -.135 1.133 .19 1.282 .732l3.695 13.418a1.02 1.02 0 0 1 -.634 1.219l-.133 .041l-2.184 .53c-.562 .135 -1.133 -.19 -1.282 -.732l-3.695 -13.418a1.02 1.02 0 0 1 .634 -1.219l.133 -.041" /><path d="M14 9l4 -1" /><path d="M16 16l3.923 -.98" /></svg>
+                </span>
+                <h3 class="card-title mb-1">Ngân hàng câu hỏi</h3>
+                <p class="text-secondary mb-0">
+                  Đóng góp câu hỏi vào kho chung, gắn thẻ bộ môn — chương — độ khó, và xem toàn bộ pool hiện có.
+                </p>
+              </div>
+            </a>
+          </div>
 
-  <section class="card">
-    <h2>Tổng quan</h2>
-    <div class="stat-grid">
-      <div class="stat"><span>Câu hỏi trong pool</span><strong id="statQuestions">—</strong></div>
-      <div class="stat"><span>Bộ môn</span><strong id="statSubjects">—</strong></div>
-      <div class="stat"><span>Kỳ thi bạn tạo</span><strong id="statExams">—</strong></div>
+          <div class="col-sm-6 col-lg-4">
+            <a href="/exams" class="card card-link card-link-pop h-100">
+              <div class="card-body">
+                <span class="avatar avatar-lg bg-purple-lt mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21h-7a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v7" /><path d="M3 10h18" /><path d="M10 3v18" /><path d="M17.001 19a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M19.001 15.5v1.5" /><path d="M19.001 21v1.5" /><path d="M22.032 17.25l-1.299 .75" /><path d="M17.27 20l-1.3 .75" /><path d="M15.97 17.25l1.3 .75" /><path d="M20.733 20l1.3 .75" /></svg>
+                </span>
+                <h3 class="card-title mb-1">Kỳ thi &amp; ma trận đề</h3>
+                <p class="text-secondary mb-0">
+                  Tạo kỳ thi, khai báo số câu theo từng mức độ, rồi rút danh sách ứng viên từ ngân hàng câu hỏi.
+                </p>
+              </div>
+            </a>
+          </div>
+
+          <div class="col-sm-6 col-lg-4">
+            <a href="/voting" class="card card-link card-link-pop h-100">
+              <div class="card-body">
+                <span class="avatar avatar-lg bg-green-lt mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l3 3l8 -8" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg>
+                </span>
+                <h3 class="card-title mb-1">Bình chọn &amp; chốt đề</h3>
+                <p class="text-secondary mb-0">
+                  Chấm điểm câu hỏi ứng viên, chọn câu điểm cao nhất cho đủ ma trận, và chốt đề cuối cùng.
+                </p>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div class="row row-cards">
+          <div class="col-sm-6 col-lg-4">
+            <div class="card card-sm">
+              <div class="card-body">
+                <div class="text-secondary text-uppercase small fw-bold mb-1">Câu hỏi trong pool</div>
+                <div class="h1 mb-0" id="statQuestions"><span class="placeholder col-3"></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <div class="card card-sm">
+              <div class="card-body">
+                <div class="text-secondary text-uppercase small fw-bold mb-1">Bộ môn</div>
+                <div class="h1 mb-0" id="statSubjects"><span class="placeholder col-3"></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <div class="card card-sm">
+              <div class="card-body">
+                <div class="text-secondary text-uppercase small fw-bold mb-1">Kỳ thi bạn tạo</div>
+                <div class="h1 mb-0" id="statExams"><span class="placeholder col-3"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-secondary small mt-3">Số liệu tính trên những gì tài khoản của bạn được phép xem.</p>
+
+      </div>
     </div>
-    <p class="muted" style="margin-top:14px">
-      Số liệu tính trên những gì tài khoản của bạn được phép xem.
-    </p>
-  </section>
+  </div>
 </div>
 
 <script src="/auth.js"></script>
@@ -53,7 +108,8 @@
   const login = eqfRequireLogin();
 
   if (login) {
-    eqfRenderShell({
+    eqfRenderTablerShell({
+      pretitle: 'Tổng quan',
       title: 'Xin chào, ' + (login.fullName || login.email) + '!',
       subtitle: 'Chọn một khu vực để bắt đầu.',
       active: 'home'
@@ -68,10 +124,14 @@
     if (!login.verifyStatus) return;
     const banner = document.getElementById('verifyBanner');
     const verified = login.verifyStatus === 'VERIFIED';
-    banner.className = 'verify-banner ' + (verified ? 'verified' : 'pending');
-    banner.textContent = verified
-      ? '✓ Tài khoản đã được xác minh — bạn có thể đóng góp câu hỏi.'
-      : '⏳ Tài khoản chưa được xác minh. Bạn xem được mọi thứ nhưng chưa thể đóng góp câu hỏi.';
+    banner.className = 'alert ' + (verified ? 'alert-success' : 'alert-warning');
+    banner.innerHTML =
+      '<div class="d-flex align-items-center gap-2">'
+      + '<div><strong>' + (verified ? 'Tài khoản đã được xác minh.' : 'Tài khoản chưa được xác minh.') + '</strong> '
+      + (verified
+          ? 'Bạn có thể đóng góp câu hỏi vào kho chung.'
+          : 'Bạn xem được mọi thứ nhưng chưa thể đóng góp câu hỏi.')
+      + '</div></div>';
   }
 
   async function setStat(id, url, transform) {

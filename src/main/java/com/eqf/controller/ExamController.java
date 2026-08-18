@@ -51,8 +51,10 @@ public class ExamController {
     @PostMapping("/{id}/candidates/pull")
     public CandidatePullResponse pullCandidates(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "365") int cooldownDays) {
-        ExamService.CandidatePullResult result = examService.pullCandidates(id, cooldownDays);
+            @RequestParam(defaultValue = "365") int cooldownDays,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        ExamService.CandidatePullResult result =
+                examService.pullCandidates(id, cooldownDays, user.id(), user.role());
         return CandidatePullResponse.from(
                 result.exam(),
                 result.candidates(),
@@ -79,9 +81,11 @@ public class ExamController {
                 .toList();
     }
 
+    /** Chọn câu theo điểm: chỉ người tạo kỳ thi (hoặc ADMIN). */
     @PostMapping("/{id}/select")
-    public List<ExamCandidateResponse> selectQuestions(@PathVariable Long id) {
-        return examService.selectQuestions(id).selectedCandidates().stream()
+    public List<ExamCandidateResponse> selectQuestions(@PathVariable Long id,
+                                                       @AuthenticationPrincipal AuthenticatedUser user) {
+        return examService.selectQuestions(id, user.id(), user.role()).selectedCandidates().stream()
                 .map(ExamCandidateResponse::from)
                 .toList();
     }
@@ -95,9 +99,14 @@ public class ExamController {
                 .toList();
     }
 
+    /**
+     * Đề cuối cùng — CHỈ người tạo kỳ thi (hoặc ADMIN) mới đọc được.
+     * Giáo viên tham gia bình chọn không được biết câu nào lọt vào đề.
+     */
     @GetMapping("/{id}/final")
-    public List<ExamCandidateResponse> getFinalExam(@PathVariable Long id) {
-        return examService.getFinalExam(id).selectedCandidates().stream()
+    public List<ExamCandidateResponse> getFinalExam(@PathVariable Long id,
+                                                    @AuthenticationPrincipal AuthenticatedUser user) {
+        return examService.getFinalExam(id, user.id(), user.role()).selectedCandidates().stream()
                 .map(ExamCandidateResponse::from)
                 .toList();
     }

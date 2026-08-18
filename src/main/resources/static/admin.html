@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Query Forge — Quản trị</title>
+  <link rel="stylesheet" href="/vendor/tabler.min.css">
+  <script>
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
+    }
+  </script>
+</head>
+<body>
+<div class="page">
+  <div id="appShell"></div>
+
+  <div class="page-wrapper">
+    <div id="pageHead"></div>
+
+    <div class="page-body">
+      <div class="container-xl">
+
+        <div id="denied" class="alert alert-danger d-none">
+          <strong>Không có quyền.</strong> Khu vực này chỉ dành cho quản trị viên.
+        </div>
+
+        <div id="adminBody" class="d-none">
+          <div id="msg" class="alert d-none" role="alert"></div>
+
+          <!-- BỘ MÔN -->
+          <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title">Bộ môn</h3></div>
+            <div class="card-body">
+              <p class="text-secondary">
+                Không có bộ môn thì không tạo được câu hỏi lẫn kỳ thi. Trên một bản triển khai
+                mới, đây là việc đầu tiên cần làm.
+              </p>
+              <div class="row g-2 align-items-end mb-3">
+                <div class="col-sm">
+                  <label class="form-label" for="subjectName">Tên bộ môn</label>
+                  <input id="subjectName" class="form-control" placeholder="Ví dụ: Ngữ văn" maxlength="100">
+                </div>
+                <div class="col-sm-auto">
+                  <button id="addSubjectBtn" class="btn btn-primary">Thêm bộ môn</button>
+                </div>
+              </div>
+              <div id="subjectList" class="d-flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+
+          <!-- NGƯỜI DÙNG -->
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h3 class="card-title mb-0">Người dùng</h3>
+              <button id="reloadUsersBtn" class="btn btn-sm">Làm mới</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table card-table table-vcenter">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Họ tên</th><th>Email</th>
+                    <th>Vai trò</th><th>Xác minh</th><th class="w-1">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="userBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/auth.js"></script>
+<script src="/shell.js"></script>
+<script>
+  const ROLE_LABEL = { TEACHER: 'Giáo viên', DEPARTMENT_HEAD: 'Tổ trưởng bộ môn', ADMIN: 'Quản trị viên' };
+  const login = eqfRequireLogin();
+
+  if (login) {
+    eqfRenderTablerShell({ pretitle: 'Quản trị', title: 'Bộ môn & người dùng', active: 'admin' });
+    if (login.role !== 'ADMIN') {
+      document.getElementById('denied').classList.remove('d-none');
+    } else {
+      document.getElementById('adminBody').classList.remove('d-none');
+      document.getElementById('addSubjectBtn').addEventListener('click', addSubject);
+      document.getElementById('reloadUsersBtn').addEventListener('click', loadUsers);
+      loadSubjects();
+      loadUsers();
+    }
+  }
+
+  function showMsg(text, ok) {
+    const el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'alert alert-' + (ok ? 'success' : 'danger');
+  }
+
+  async function apiJson(url, options) {
+    const res = await apiFetch(url, options);
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* phản hồi không có JSON */ }
+    if (!res.ok) throw new Error((data && data.message) || ('Lỗi HTTP ' + res.status));
+    return data;
+  }
+
+  async function loadSubjects() {
+    const box = document.getElementById('subjectList');
+    try {
+      const list = await apiJson('/api/subjects');
+      box.innerHTML = list.length
+        ? list.map((s) => '<span class="badge bg-blue-lt">' + eqfEscape(s.name) + '</span>').join('')
+        : '<span class="text-secondary">Chưa có bộ môn nào.</span>';
+    } catch (e) { showMsg(e.message, false); }
+  }
+
+  async function addSubject() {
+    const input = document.getElementById('subjectName');
+    const name = input.value.trim();
+    if (!name) { showMsg('Vui lòng nhập tên bộ môn', false); return; }
+    try {
+      await apiJson('/api/subjects', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name })
+      });
+      input.value = '';
+      showMsg('Đã thêm bộ môn "' + name + '"', true);
+      loadSubjects();
+    } catch (e) { showMsg(e.message, false); }
+  }
+
+  function roleOptions(current) {
+    return Object.keys(ROLE_LABEL).map(function (r) {
+      return '<option value="' + r + '"' + (r === current ? ' selected' : '') + '>' + ROLE_LABEL[r] + '</option>';
+    }).join('');
+  }
+
+  async function loadUsers() {
+    const body = document.getElementById('userBody');
+    try {
+      const users = await apiJson('/api/admin/users');
+      body.innerHTML = '';
+      users.forEach(function (u) {
+        const verified = u.verifyStatus === 'VERIFIED';
+        const self = u.id === eqfUserId(login);
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="text-secondary">' + u.id + '</td>'
+          + '<td>' + eqfEscape(u.fullName) + (self ? ' <span class="badge bg-azure-lt">bạn</span>' : '') + '</td>'
+          + '<td class="text-secondary">' + eqfEscape(u.email) + '</td>'
+          + '<td><select class="form-select form-select-sm role-pick" data-id="' + u.id + '"'
+            + (self ? ' disabled' : '') + '>' + roleOptions(u.role) + '</select></td>'
+          + '<td><span class="badge ' + (verified ? 'bg-green-lt' : 'bg-yellow-lt') + '">'
+            + (verified ? 'Đã xác minh' : eqfEscape(u.verifyStatus)) + '</span></td>'
+          + '<td><button class="btn btn-sm ' + (verified ? '' : 'btn-primary') + ' verify-btn"'
+            + ' data-id="' + u.id + '" data-status="' + (verified ? 'PENDING' : 'VERIFIED') + '">'
+            + (verified ? 'Thu hồi' : 'Duyệt') + '</button></td>';
+        body.appendChild(tr);
+      });
+
+      body.querySelectorAll('.verify-btn').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          try {
+            await apiJson('/api/admin/users/' + b.dataset.id + '/verify-status', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: b.dataset.status })
+            });
+            showMsg('Đã cập nhật trạng thái xác minh', true);
+            loadUsers();
+          } catch (e) { showMsg(e.message, false); }
+        });
+      });
+
+      body.querySelectorAll('.role-pick').forEach(function (sel) {
+        sel.addEventListener('change', async function () {
+          try {
+            await apiJson('/api/admin/users/' + sel.dataset.id + '/role', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ role: sel.value })
+            });
+            showMsg('Đã đổi vai trò', true);
+            loadUsers();
+          } catch (e) { showMsg(e.message, false); loadUsers(); }
+        });
+      });
+    } catch (e) { showMsg(e.message, false); }
+  }
+</script>
+</body>
+</html>

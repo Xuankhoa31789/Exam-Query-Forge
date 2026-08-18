@@ -1,6 +1,7 @@
 package com.eqf.service;
 
 import com.eqf.dto.CreateExamRequest;
+import com.eqf.exception.ForbiddenException;
 import com.eqf.dto.ExamMatrixItemRequest;
 import com.eqf.model.*;
 import com.eqf.repository.*;
@@ -113,13 +114,14 @@ public class ExamService {
      * trạng thái CANDIDATE. Nếu một rổ thiếu câu, toàn bộ transaction được rollback.
      */
     @Transactional
-    public CandidatePullResult pullCandidates(Long examId, int cooldownDays) {
+    public CandidatePullResult pullCandidates(Long examId, int cooldownDays, Long userId, UserRole role) {
         if (cooldownDays < 0) {
             throw new IllegalArgumentException("cooldownDays không được âm");
         }
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy kỳ thi id=" + examId));
+        requireExamManager(exam, userId, role, "rút câu ứng viên");
         if (exam.getStatus() != ExamStatus.DRAFT) {
             throw new IllegalArgumentException("Chỉ kỳ thi ở trạng thái DRAFT mới được rút câu ứng viên");
         }
@@ -191,9 +193,10 @@ public class ExamService {
     }
 
     @Transactional
-    public SelectionResult selectQuestions(Long examId) {
+    public SelectionResult selectQuestions(Long examId, Long userId, UserRole role) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay ky thi id=" + examId));
+        requireExamManager(exam, userId, role, "chọn câu theo điểm");
         if (exam.getStatus() != ExamStatus.REVIEW) {
             throw new IllegalArgumentException("Chi ky thi REVIEW moi duoc chon cau theo diem");
         }
@@ -277,8 +280,9 @@ public class ExamService {
     }
 
     @Transactional(readOnly = true)
-    public FinalExamResult getFinalExam(Long examId) {
+    public FinalExamResult getFinalExam(Long examId, Long userId, UserRole role) {
         Exam exam = findDetailedExam(examId);
+        requireExamManager(exam, userId, role, "xem đề cuối cùng");
         if (exam.getStatus() != ExamStatus.FINALIZED) {
             throw new IllegalArgumentException("Chi xem duoc de cuoi sau khi ky thi da FINALIZED");
         }
@@ -286,6 +290,23 @@ public class ExamService {
                 exam,
                 examCandidateRepository.findByExamIdAndStatusOrderByIdAsc(examId, CandidateStatus.SELECTED)
         );
+    }
+
+    /**
+     * Chỉ người tạo kỳ thi (hoặc ADMIN) mới được thao tác/đọc dữ liệu nhạy cảm của kỳ thi.
+     * Đây là chốt chặn giữ đúng nguyên tắc: giáo viên bình chọn trên pool rộng
+     * nhưng KHÔNG được biết câu nào lọt vào đề cuối cùng.
+     */
+    private void requireExamManager(Exam exam, Long userId, UserRole role, String action) {
+        if (userId == null) {
+            throw new ForbiddenException("Cần đăng nhập để " + action);
+        }
+        if (role == UserRole.ADMIN) {
+            return;
+        }
+        if (!exam.getCreatedBy().getId().equals(userId)) {
+            throw new ForbiddenException("Chỉ người tạo kỳ thi mới được " + action);
+        }
     }
 
     private Exam findDetailedExam(Long examId) {

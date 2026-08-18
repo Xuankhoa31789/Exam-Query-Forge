@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -q -o spring-boot:run)",
+      "Bash(mvn -o spring-boot:run)",
+      "Bash(mvn spring-boot:run)",
+      "Bash(mvn -q -o compile)",
+      "Bash(mvn -o compile)",
+      "Bash(mvn compile)",
+      "Bash(mvn -o test)",
+      "Bash(mvn test)",
+      "Bash(curl *)"
+    ]
+  }
+}
