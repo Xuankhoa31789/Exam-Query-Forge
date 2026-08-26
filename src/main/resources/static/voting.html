@@ -42,6 +42,24 @@
 
     <section id="candidateCard" class="card hidden">
       <h2>Danh sách candidates</h2>
+
+      <div class="vote-toolbar">
+        <div class="vote-progress">
+          <div class="vote-progress-bar"><span id="voteProgressFill"></span></div>
+          <span class="muted" id="voteProgressText">—</span>
+        </div>
+        <div class="vote-toolbar-right">
+          <select id="candidateFilter" class="vote-filter">
+            <option value="all">Tất cả</option>
+            <option value="todo">Chưa bầu</option>
+            <option value="done">Đã bầu</option>
+          </select>
+          <span class="kbd-hint">
+            Phím tắt: <kbd>1</kbd> nên dùng · <kbd>0</kbd> cần sửa · <kbd>-</kbd> loại · <kbd>Tab</kbd> câu kế
+          </span>
+        </div>
+      </div>
+
       <div id="candidateEmpty" class="muted hidden">Kỳ thi này chưa có câu ứng viên.</div>
       <div id="candidateBuckets"></div>
     </section>
@@ -73,6 +91,8 @@
   let currentExam = null;
   let currentExamId = null;
   let reviewExams = [];
+  let currentCandidates = [];
+  let pendingFocusId = null;
 
   function showMsg(element, text, ok) {
     element.textContent = text;
@@ -196,24 +216,54 @@
     }
   }
 
+  function isVoted(candidate) {
+    return candidate.myVoteValue !== null && candidate.myVoteValue !== undefined;
+  }
+
+  function updateProgress(list) {
+    const done = list.filter(isVoted).length;
+    const percent = list.length ? Math.round((done / list.length) * 100) : 0;
+    document.getElementById('voteProgressFill').style.width = percent + '%';
+    document.getElementById('voteProgressText').textContent =
+      'Đã bầu ' + done + ' / ' + list.length + ' câu (' + percent + '%)';
+  }
+
   function renderCandidates(candidates) {
+    if (candidates) currentCandidates = candidates;
+    const all = currentCandidates;
     const card = document.getElementById('candidateCard');
     const empty = document.getElementById('candidateEmpty');
     const buckets = document.getElementById('candidateBuckets');
     buckets.innerHTML = '';
     card.classList.remove('hidden');
 
-    if (!candidates.length) {
+    if (!all.length) {
       empty.classList.remove('hidden');
+      updateProgress(all);
       return;
     }
     empty.classList.add('hidden');
+    updateProgress(all);
+
+    const mode = document.getElementById('candidateFilter').value;
+    const visible = all.filter(function (c) {
+      if (mode === 'todo') return !isVoted(c);
+      if (mode === 'done') return isVoted(c);
+      return true;
+    });
+
+    if (!visible.length) {
+      buckets.innerHTML = '<p class="muted">Không còn câu nào ở bộ lọc này.</p>';
+      return;
+    }
 
     DIFFICULTIES.forEach(difficulty => {
-      const bucketItems = candidates.filter(candidate => candidate.difficulty === difficulty.value);
+      const bucketItems = visible.filter(candidate => candidate.difficulty === difficulty.value);
       if (!bucketItems.length) return;
+      // Số đã chọn tính trên TOÀN BỘ rổ, không theo bộ lọc đang xem.
+      const inBucket = all.filter(candidate => candidate.difficulty === difficulty.value);
       const required = requiredCount(difficulty.value);
-      const selected = bucketItems.filter(candidate => candidate.status === 'SELECTED').length;
+      const selected = inBucket.filter(candidate => candidate.status === 'SELECTED').length;
       const section = document.createElement('section');
       section.className = 'bucket';
       section.innerHTML =
@@ -222,21 +272,40 @@
         bucketItems.map(renderCandidate).join('');
       buckets.appendChild(section);
     });
+
+    if (pendingFocusId !== null) {
+      const next = buckets.querySelector('.candidate[data-candidate-id="' + pendingFocusId + '"]');
+      pendingFocusId = null;
+      if (next) next.focus();
+    }
+  }
+
+  /** Phương án trả lời — không thấy chúng thì không đánh giá được câu trắc nghiệm. */
+  function renderOptions(options) {
+    if (!options || !options.length) return '';
+    return '<ul class="opt-list">' + options.map(function (o) {
+      return '<li class="opt' + (o.correct ? ' opt-correct' : '') + '">' +
+        '<span class="opt-mark">' + (o.correct ? '✓' : '') + '</span>' +
+        escapeHtml(o.content) + '</li>';
+    }).join('') + '</ul>';
   }
 
   function renderCandidate(candidate) {
     const difficulty = difficultyInfo(candidate.difficulty);
     const statusClass = candidate.status === 'SELECTED' ? 'b-selected' : (candidate.status === 'REJECTED' ? 'b-rejected' : 'b-candidate');
     const commentOpen = candidate.myVoteValue === 0 || candidate.myVoteValue === -1;
-    return '<article class="candidate" data-candidate-id="' + candidate.id + '" data-pending-value="' + (candidate.myVoteValue == null ? '' : candidate.myVoteValue) + '">' +
+    const voted = candidate.myVoteValue !== null && candidate.myVoteValue !== undefined;
+    return '<article class="candidate' + (voted ? ' voted' : '') + '" tabindex="0"' +
+      ' data-candidate-id="' + candidate.id + '" data-pending-value="' + (candidate.myVoteValue == null ? '' : candidate.myVoteValue) + '">' +
       '<div class="candidate-top">' +
       '<div><p class="candidate-content"><b>#' + candidate.questionId + '</b> ' + escapeHtml(candidate.content) + '</p>' +
       '<div class="candidate-meta">' +
       '<span class="badge ' + difficulty.badge + '">' + difficulty.label + '</span>' +
       '<span class="badge ' + statusClass + '">' + escapeHtml(candidate.status) + '</span>' +
       '<span class="muted">' + escapeHtml(QUESTION_TYPES[candidate.questionType] || candidate.questionType) + '</span>' +
-      '<span class="muted">Tác giả: ' + escapeHtml(candidate.authorName || '') + '</span>' +
-      '</div></div>' +
+      '</div>' +
+      renderOptions(candidate.options) +
+      '</div>' +
       '<div class="score"><span>Tổng điểm</span><strong>' + candidate.totalScore + '</strong></div>' +
       '</div>' +
       '<div class="vote-row">' +
@@ -267,6 +336,7 @@
       const value = Number(voteButton.dataset.value);
       card.dataset.pendingValue = String(value);
       if (value === 1) {
+        pendingFocusId = nextCandidateId(card);
         await castVote(Number(card.dataset.candidateId), 1, null);
       } else {
         card.querySelector('.comment-box').classList.remove('hidden');
@@ -289,6 +359,39 @@
     }
   }
 
+  /** Thẻ ứng viên kế tiếp trong DOM, để bầu xong nhảy sang luôn. */
+  function nextCandidateId(card) {
+    const cards = Array.from(document.querySelectorAll('#candidateBuckets .candidate'));
+    const index = cards.indexOf(card);
+    return index >= 0 && index + 1 < cards.length
+      ? Number(cards[index + 1].dataset.candidateId)
+      : null;
+  }
+
+  /**
+   * Bầu bằng bàn phím: 1 = nên dùng, 0 = cần sửa, - = loại.
+   * Bầu +1 xong nhảy thẳng sang câu kế; 0 và -1 phải nhập lý do nên dừng ở ô nhận xét.
+   */
+  async function handleCandidateKey(event) {
+    if (event.target.matches('textarea, input, select, button')) return;
+    const card = event.target.closest('.candidate');
+    if (!card) return;
+
+    const map = { '1': 1, '0': 0, '-': -1, '_': -1 };
+    if (!(event.key in map)) return;
+    event.preventDefault();
+
+    const value = map[event.key];
+    card.dataset.pendingValue = String(value);
+    if (value === 1) {
+      pendingFocusId = nextCandidateId(card);
+      await castVote(Number(card.dataset.candidateId), 1, null);
+    } else {
+      card.querySelector('.comment-box').classList.remove('hidden');
+      card.querySelector('.vote-comment').focus();
+    }
+  }
+
   async function castVote(candidateId, value, comment) {
     const message = document.getElementById('pageMsg');
     hideMsg(message);
@@ -297,10 +400,21 @@
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ value, comment })
       });
-      showMsg(message, 'Đã lưu vote cho candidate #' + candidateId, true);
-      await loadCandidates();
+
+      // Cập nhật ngay trên dữ liệu đang giữ thay vì gọi lại API và dựng lại 100+ thẻ.
+      // Chỉ phiếu của CHÍNH mình đổi, nên tính lại tổng điểm tại chỗ là chính xác.
+      const item = currentCandidates.find(c => c.id === candidateId);
+      if (item) {
+        const previous = (item.myVoteValue === null || item.myVoteValue === undefined) ? 0 : item.myVoteValue;
+        item.totalScore = item.totalScore - previous + value;
+        item.myVoteValue = value;
+        item.myVoteComment = comment;
+      }
+      renderCandidates();
+      return true;
     } catch (error) {
       showMsg(message, error.message, false);
+      return false;
     }
   }
 
@@ -400,6 +514,8 @@
   document.getElementById('reloadCandidatesBtn').addEventListener('click', loadCandidates);
   document.getElementById('examSelect').addEventListener('change', chooseExam);
   document.getElementById('candidateBuckets').addEventListener('click', handleCandidateClick);
+  document.getElementById('candidateBuckets').addEventListener('keydown', handleCandidateKey);
+  document.getElementById('candidateFilter').addEventListener('change', () => renderCandidates());
   document.getElementById('selectBtn').addEventListener('click', selectByScore);
   document.getElementById('finalizeBtn').addEventListener('click', finalizeExam);
 

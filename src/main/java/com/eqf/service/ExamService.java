@@ -184,7 +184,7 @@ public class ExamService {
         Map<Long, Vote> myVotes = voteRepository.findByExamIdAndVoterId(examId, voterId).stream()
                 .collect(Collectors.toMap(vote -> vote.getCandidate().getId(), Function.identity()));
 
-        return examCandidateRepository.findByExamIdOrderByIdAsc(examId).stream()
+        return examCandidateRepository.findForVotingByExamId(examId).stream()
                 .map(candidate -> new VotingCandidateView(
                         candidate,
                         scoreByCandidate.getOrDefault(candidate.getId(), 0),

@@ -119,6 +119,19 @@ runs, then move on. Do NOT build all entities, then all repos.
       (`/api/admin/users`, `.../verify-status`, `.../role`) plus `admin.html`, so a fresh
       deployment no longer needs manual SQL. **The first registered user on an empty
       users table becomes ADMIN + VERIFIED** — that is the bootstrap.
+- [x] **Slice 11 — Voting UX + a data-corrupting bug.**
+      `VotingCandidateResponse` now carries the **answer options** (content + correct flag)
+      and no longer carries the author — you cannot judge a multiple-choice item without
+      seeing its distractors, and seeing the author's name biases voting upward.
+      `ExamCandidateRepository.findForVotingByExamId` fetch-joins question+options so a
+      120-candidate screen is one query, not 120. `voting.html` gained a progress bar,
+      a "chưa bầu / đã bầu" filter, keyboard voting (`1` / `0` / `-`, then focus jumps to
+      the next card) and in-place updates instead of refetching the whole list per vote.
+      **Bug found and fixed:** `OptionDto` binds the JSON key `correct` (Jackson derives it
+      from `setCorrect`), but the UI sent `isCorrect`. Jackson silently dropped it, so
+      EVERY multiple-choice question ever created had no correct answer stored — 26/26 rows
+      in the dev DB. Fixed by `@JsonAlias("isCorrect")` on the setter plus sending `correct`
+      from the UI. Existing rows had to be repaired by hand; there is no edit endpoint.
 - [ ] (Later) role enforcement per endpoint (e.g. only DEPARTMENT_HEAD creates/finalizes
       exams); audit_log slice; real LLM DifficultyAnalyzer (pending API key).
 
@@ -187,6 +200,14 @@ No SQL console needed at any point. Every later registration is TEACHER + PENDIN
   any registered account could read a finalized exam.
 - Throw `ForbiddenException` (403) for "logged in but not allowed", `IllegalArgumentException`
   (400) for bad input. 401 is only for missing/broken tokens and comes from Spring Security.
+- **A wrong JSON key fails silently.** Spring Boot leaves `FAIL_ON_UNKNOWN_PROPERTIES`
+  off, so a request DTO quietly ignores keys it does not recognise — the row saves with
+  a default value and nothing errors. This already cost the whole question bank once
+  (`isCorrect` vs `correct`). After changing any request DTO, POST one record and GET it
+  back to confirm the field actually round-trips.
+- **There is no way to edit or delete a question** (`QuestionController` is create/publish/read
+  only). So a vote of `0 = cần sửa` currently goes nowhere, and bad data can only be repaired
+  through the H2/Postgres console.
 - The login response carries `verifyStatus` for the banner on `home.html`. It is a UI
   hint only — never gate a real permission on it, the server owns that check.
 

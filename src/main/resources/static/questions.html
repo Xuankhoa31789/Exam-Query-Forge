@@ -165,7 +165,7 @@
       const text = row.querySelector('input[type=text]').value.trim();
       if (text) options.push({
         content: text,
-        isCorrect: row.querySelector('input[type=checkbox]').checked,
+        correct: row.querySelector('input[type=checkbox]').checked,
         sortOrder: i + 1
       });
     });
